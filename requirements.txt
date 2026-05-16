@@ -14,6 +14,7 @@
 # those MP3 stems back for slicing.
 
 google-genai>=0.3      # Step 0 — Lyria text->music (Google, recommended)
+keyring>=24            # optional: read Lyria key from OS secret store
 transformers>=4.40     # Step 0 — MusicGen text->music (HF, offline alt)
 accelerate>=0.26       # faster/leaner MusicGen weight loading
 sentencepiece>=0.2     # tokenizer backend for MusicGen's T5 text encoder

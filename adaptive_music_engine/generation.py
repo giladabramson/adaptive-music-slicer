@@ -8,9 +8,9 @@ Backends
 ``lyria`` (Google, via the ``google-genai`` SDK — *recommended*)
     Calls ``lyria-3-clip-preview`` with a single synchronous request and
     writes the returned **MP3**. Real, high-quality music; no local
-    model, no GPU. Needs a ``GOOGLE_API_KEY`` (or ``GEMINI_API_KEY``)
-    with access to the Lyria preview model. Ported from the librono-app
-    ``lyria_generate.py``.
+    model, no GPU. Needs an API key (env var, ``--gen-api-key``, or the
+    OS secret store via ``keyring``) with access to the Lyria preview
+    model. Ported from the librono-app ``lyria_generate.py``.
 
 ``musicgen`` (Hugging Face, local — default, offline)
     ``facebook/musicgen-small`` via ``transformers``. ~2 GB weights
@@ -50,6 +50,10 @@ BACKEND_SUFFIX = {"lyria": ".mp3", "musicgen": ".wav"}
 #: GOOGLE_API_KEY; the watchdog uses GEMINI_API_KEY — same key value
 #: usually works for both, so we accept either.
 _LYRIA_KEY_ENV = ("GOOGLE_API_KEY", "GEMINI_API_KEY")
+
+#: Service name under which the key may be stored in the OS secret
+#: store (Windows Credential Manager / macOS Keychain) via ``keyring``.
+_KEYRING_SERVICE = "adaptive-music-slicer"
 
 #: MusicGen emits audio tokens at 50 Hz; this maps seconds -> max tokens.
 _TOKENS_PER_SECOND = 50
@@ -149,16 +153,43 @@ def _first_audio_bytes(response) -> bytes:
 
 
 def _resolve_lyria_key(api_key: str | None) -> str:
+    """Find the Lyria API key without ever hardcoding it.
+
+    Resolution order (first hit wins):
+      1. explicit ``--gen-api-key`` / ``api_key`` argument
+      2. env var (``GOOGLE_API_KEY`` then ``GEMINI_API_KEY``)
+      3. OS secret store via ``keyring`` (Windows Credential Manager /
+         macOS Keychain) — encrypted at rest, never on disk in clear,
+         never committable. ``keyring`` is optional: if it's absent or
+         has no backend, this step is silently skipped.
+    """
     if api_key:
         return api_key
+
     for env in _LYRIA_KEY_ENV:
         val = os.getenv(env)
         if val:
             return val
+
+    try:
+        import keyring
+
+        for username in _LYRIA_KEY_ENV:
+            val = keyring.get_password(_KEYRING_SERVICE, username)
+            if val:
+                return val
+    except Exception:
+        # keyring not installed / no OS backend: fall through to error.
+        pass
+
     raise TrackGenerationError(
-        "Lyria backend needs an API key. Set one of "
-        f"{' / '.join(_LYRIA_KEY_ENV)} (PowerShell, current terminal):\n"
-        '  $env:GOOGLE_API_KEY = "YOUR_KEY"\n'
+        "Lyria backend needs an API key. Provide it one of these ways:\n"
+        f"  • Env var ({' / '.join(_LYRIA_KEY_ENV)}) — PowerShell:\n"
+        '      setx GOOGLE_API_KEY "YOUR_KEY"   (then open a new terminal)\n'
+        "  • OS secret store (encrypted, recommended) — run once:\n"
+        '      python -c "import keyring; keyring.set_password'
+        f"('{_KEYRING_SERVICE}', 'GOOGLE_API_KEY', 'YOUR_KEY')\"\n"
+        "  • --gen-api-key on the command line\n"
         "The key must have access to the Lyria preview model."
     )
 

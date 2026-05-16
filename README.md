@@ -20,8 +20,8 @@ Two generation backends (Step 0 is optional — skip it with `-i`):
 
 - **`--gen-backend lyria`** *(recommended)* — Google Lyria
   (`lyria-3-clip-preview`) via the `google-genai` SDK. Real,
-  high-quality music; one API call; no local model. Needs
-  `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) with Lyria preview access.
+  high-quality music; one API call; no local model. Needs an API key
+  (env var, `keyring`, or `--gen-api-key`) with Lyria preview access.
 - **`--gen-backend musicgen`** *(default, offline)* — local
   `facebook/musicgen-small`. No key, but ~2 GB weights, slow on CPU,
   and **instrumental** (the Demucs `vocals` stem stays near-silent;
@@ -80,7 +80,6 @@ mutually exclusive.
 **Lyria (Google API — recommended):**
 
 ```powershell
-$env:GOOGLE_API_KEY = "YOUR_KEY"   # or GEMINI_API_KEY
 python -m adaptive_music_engine --gen-backend lyria `
     --generate "energetic synthwave, punchy kick, deep bassline, 120 bpm" `
     -o .\output --bars 8 -v
@@ -89,6 +88,25 @@ python -m adaptive_music_engine --gen-backend lyria `
 One API call, real music, no local model. The key needs access to the
 `lyria-3-clip-preview` model. `--gen-duration`/`--gen-seed` don't apply
 (the preview model returns a fixed-length clip).
+
+**Storing the API key** (resolution order — first hit wins):
+
+1. `--gen-api-key "..."` on the command line
+2. env var `GOOGLE_API_KEY` or `GEMINI_API_KEY`
+   (`setx GOOGLE_API_KEY "..."`, then open a new terminal)
+3. **OS secret store via `keyring`** — encrypted (Windows Credential
+   Manager / macOS Keychain), never in clear on disk, never
+   committable. Store it once (run it yourself; don't paste the key
+   into shared logs):
+
+   ```powershell
+   python -c "import keyring; keyring.set_password('adaptive-music-slicer','GOOGLE_API_KEY','YOUR_KEY')"
+   ```
+
+The repo is public — never hardcode the key or commit a `.env`
+(`.env*` is gitignored as a guardrail). Also restrict the key and set
+a budget alert in Google AI Studio / Cloud Console, and rotate it if
+it ever leaks.
 
 **MusicGen (local, offline — default):**
 

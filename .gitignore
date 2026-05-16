@@ -4,13 +4,21 @@ __pycache__/
 .venv/
 *.egg-info/
 
+# Secrets — never commit API keys (repo is public)
+.env
+.env.*
+*.pem
+*.key
+
 # Engine I/O — generated artifacts, not source
 output/
 _work/
 *.wav
 *.mp3
 *.flac
-!input_track.mp3   # keep a sample input if you add one
+# keep a sample input if you add one (comment on its own line —
+# git does not support inline comments in .gitignore patterns)
+!input_track.mp3
 
 # OS / editor
 .DS_Store
