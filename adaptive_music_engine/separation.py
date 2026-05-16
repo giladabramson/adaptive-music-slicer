@@ -46,6 +46,8 @@ def separate_stems(
     *,
     model: str = "htdemucs",
     python_exe: str | None = None,
+    stem_codec: str = "mp3",
+    mp3_bitrate: int = 320,
 ) -> dict[str, Path]:
     """Split ``input_path`` into 4 stems under ``work_dir``.
 
@@ -62,10 +64,21 @@ def separate_stems(
     python_exe:
         Interpreter used to launch Demucs. Defaults to the current
         interpreter so the active virtualenv is respected.
+    stem_codec:
+        ``"mp3"`` (default) or ``"wav"``. Demucs' WAV writer goes
+        through ``torchaudio.save``, which on torch/torchaudio >= 2.9
+        requires the optional ``torchcodec`` package (FFmpeg-linked,
+        poor Windows support). Its MP3 writer uses the bundled
+        ``lameenc`` and has no such dependency, so MP3 (320 kbps,
+        near-transparent) is the robust default. The final loop format
+        is independent — slicing re-exports to whatever ``--format``
+        the caller chose.
+    mp3_bitrate:
+        Demucs MP3 bitrate (kbps) when ``stem_codec == "mp3"``.
 
     Returns
     -------
-    dict mapping each name in :data:`STEM_NAMES` to its ``.wav`` path.
+    dict mapping each name in :data:`STEM_NAMES` to its stem path.
 
     Raises
     ------
@@ -75,6 +88,11 @@ def separate_stems(
     """
     python_exe = python_exe or sys.executable
     work_dir.mkdir(parents=True, exist_ok=True)
+
+    if stem_codec not in ("mp3", "wav"):
+        raise StemSeparationError(
+            f"stem_codec must be 'mp3' or 'wav', got '{stem_codec}'."
+        )
 
     if not _demucs_is_available(python_exe):
         raise StemSeparationError(
@@ -90,8 +108,10 @@ def separate_stems(
         model,
         "-o",
         str(work_dir),
-        str(input_path),
     ]
+    if stem_codec == "mp3":
+        cmd += ["--mp3", "--mp3-bitrate", str(mp3_bitrate)]
+    cmd.append(str(input_path))
 
     # Do NOT capture output: let Demucs' progress bar stream to the
     # terminal so a multi-minute separation isn't a silent black box.
@@ -107,10 +127,11 @@ def separate_stems(
         )
 
     stem_dir = work_dir / model / input_path.stem
+    ext = "mp3" if stem_codec == "mp3" else "wav"
     stems: dict[str, Path] = {}
     missing: list[str] = []
     for name in STEM_NAMES:
-        candidate = stem_dir / f"{name}.wav"
+        candidate = stem_dir / f"{name}.{ext}"
         if candidate.is_file():
             stems[name] = candidate
         else:

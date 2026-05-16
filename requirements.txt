@@ -9,7 +9,9 @@
 #
 #   ffmpeg   (https://ffmpeg.org/  •  Windows: `winget install Gyan.FFmpeg`)
 #
-# If you only ever feed in .wav and export .wav, ffmpeg is optional.
+# ffmpeg is REQUIRED: Demucs separates to MP3 (its WAV writer needs the
+# optional torchcodec on torch>=2.9) and pydub needs ffmpeg to read
+# those MP3 stems back for slicing.
 
 demucs>=4.0.0          # Step 1 — source separation (htdemucs 4-stem model)
 librosa>=0.10.1        # Step 2 — BPM / beat detection (MIR)

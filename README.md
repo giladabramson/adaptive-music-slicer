@@ -33,13 +33,28 @@ fine for an MVP — separation just runs slower).
 
 ### ffmpeg (system dependency — not pip-installable)
 
-Required for **MP3 input decoding** and **MP3 export**. With WAV in /
-WAV out you can skip it.
+**Required** — not optional. Demucs writes its intermediate stems as
+MP3 (see note below), and pydub needs ffmpeg to read them back for
+slicing. It's also used for MP3 input decoding and MP3 export.
 
 ```powershell
 winget install Gyan.FFmpeg     # then restart the shell
 ffmpeg -version                # verify it's on PATH
 ```
+
+> If `winget` is unavailable, drop a static `ffmpeg.exe` / `ffprobe.exe`
+> onto PATH (e.g. into your venv's `Scripts/`, which is on PATH while
+> the venv is activated).
+
+### Note: why Demucs stems are MP3
+
+On `torch`/`torchaudio` ≥ 2.9, Demucs' WAV writer (`torchaudio.save`)
+requires the optional, FFmpeg-linked `torchcodec` package (poor Windows
+support). Its MP3 writer uses the bundled `lameenc` and has no such
+dependency, so the engine separates to 320 kbps MP3 (near-transparent)
+by default. This is purely the *intermediate* format — the final loop
+is re-exported to whatever `--format` you choose (WAV by default, so
+your delivered loops are still lossless from that point on).
 
 ## Run
 
@@ -100,6 +115,11 @@ are sliced with the *same* `loop_start_ms`/`loop_end_ms`, quantised to
 integer ms exactly once, so they stay phase-locked and the seam error
 stays sub-millisecond (inaudible). Full reasoning is documented in
 [adaptive_music_engine/analysis.py](adaptive_music_engine/analysis.py).
+
+Loop length follows the *detected* BPM, so a track you know is exactly
+120 BPM may estimate as e.g. 120.19 and yield a 31.95 s (not 32.00 s)
+16-bar loop. Pass `--manual-bpm 120` to pin the tempo and get the exact
+mathematical loop length.
 
 ## Use as a library
 

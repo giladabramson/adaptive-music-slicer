@@ -108,11 +108,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    # Keep the root logger (and chatty third-party libs like numba's JIT
+    # tracer and pydub's ffmpeg subprocess logger) quiet; only elevate
+    # our own package logger so -v shows pipeline progress, not spam.
     logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(message)s",
-        stream=sys.stderr,
+        level=logging.WARNING, format="%(message)s", stream=sys.stderr
     )
+    logging.getLogger("adaptive_music_engine").setLevel(
+        logging.DEBUG if args.verbose else logging.INFO
+    )
+    logging.getLogger("numba").setLevel(logging.WARNING)
 
     try:
         emotion_overrides = _parse_emotion_overrides(args.emotion)
