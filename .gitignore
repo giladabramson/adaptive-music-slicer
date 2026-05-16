@@ -12,10 +12,12 @@ __pycache__/
 
 # Engine I/O — generated artifacts, not source
 output/
+output*/
 _work/
 *.wav
 *.mp3
 *.flac
+config.json
 # keep a sample input if you add one (comment on its own line —
 # git does not support inline comments in .gitignore patterns)
 !input_track.mp3
