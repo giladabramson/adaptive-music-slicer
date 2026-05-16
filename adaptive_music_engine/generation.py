@@ -28,6 +28,7 @@ from __future__ import annotations
 import base64
 import logging
 import os
+import time
 from pathlib import Path
 
 from .errors import TrackGenerationError
@@ -152,6 +153,19 @@ def _first_audio_bytes(response) -> bytes:
     return b""
 
 
+def _first_text(response) -> str:
+    """First text part of a response (for diagnostics on no-audio)."""
+    candidates = getattr(response, "candidates", None) or []
+    for candidate in candidates:
+        content = getattr(candidate, "content", None)
+        parts = getattr(content, "parts", None) or []
+        for part in parts:
+            txt = getattr(part, "text", None)
+            if txt:
+                return txt.strip()
+    return ""
+
+
 def _resolve_lyria_key(api_key: str | None) -> str:
     """Find the Lyria API key without ever hardcoding it.
 
@@ -208,26 +222,52 @@ def _generate_lyria(
             "  pip install -r requirements.txt"
         ) from exc
 
-    logger.info("Generating with Google Lyria ('%s')…", model)
-    try:
-        client = genai.Client(api_key=key)
-        response = client.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=types.GenerateContentConfig(response_modalities=["AUDIO"]),
+    # lyria-3-clip-preview is non-deterministic: it intermittently
+    # returns a text-only ("<instrumental>") response with no audio
+    # part for the very same prompt. Retry a few times before failing.
+    attempts = 3
+    audio_bytes = b""
+    last_text = ""
+    for attempt in range(1, attempts + 1):
+        logger.info(
+            "Generating with Google Lyria ('%s')%s…",
+            model,
+            "" if attempt == 1 else f" — retry {attempt}/{attempts}",
         )
-    except Exception as exc:  # network / auth / access — opaque SDK errors
-        raise TrackGenerationError(
-            f"Lyria request failed: {exc}\n"
-            "Common causes: key/project lacks preview-model access, "
-            "billing/quota limits, or region/model availability."
-        ) from exc
+        try:
+            client = genai.Client(api_key=key)
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=["AUDIO"]
+                ),
+            )
+        except Exception as exc:  # network / auth / access
+            raise TrackGenerationError(
+                f"Lyria request failed: {exc}\n"
+                "Common causes: key/project lacks preview-model access, "
+                "billing/quota limits, or region/model availability."
+            ) from exc
 
-    audio_bytes = _first_audio_bytes(response)
+        audio_bytes = _first_audio_bytes(response)
+        if audio_bytes:
+            break
+        last_text = _first_text(response)
+        logger.warning(
+            "Lyria returned no audio (attempt %d/%d)%s.",
+            attempt, attempts,
+            f"; model said {last_text!r}" if last_text else "",
+        )
+        if attempt < attempts:
+            time.sleep(2 * attempt)
+
     if not audio_bytes:
         raise TrackGenerationError(
-            "Lyria returned no audio. Try a simpler prompt or verify "
-            "the key has access to the model."
+            f"Lyria returned no audio after {attempts} attempts. The "
+            "preview model intermittently responds text-only"
+            + (f" (last: {last_text!r})" if last_text else "")
+            + ". Re-run, or try a simpler prompt."
         )
 
     try:
