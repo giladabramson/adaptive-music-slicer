@@ -51,25 +51,35 @@ def build_parser() -> argparse.ArgumentParser:
         "-o", "--output", type=Path, default=Path("./output"),
         help="Directory for sliced loops and config.json.",
     )
-    gen = parser.add_argument_group("generation (Hugging Face MusicGen)")
+    gen = parser.add_argument_group("generation (text -> music)")
     gen.add_argument(
         "--generate", metavar="PROMPT", default=None,
         help="Generate the source track from this text prompt instead "
-             "of supplying --input. NOTE: MusicGen is instrumental — "
-             "the vocals stem will be near-silent.",
+             "of supplying --input.",
+    )
+    gen.add_argument(
+        "--gen-backend", choices=("lyria", "musicgen"), default="musicgen",
+        help="lyria = Google API (real music, needs GOOGLE_API_KEY / "
+             "GEMINI_API_KEY); musicgen = local Hugging Face (offline, "
+             "instrumental only — vocals stem stays near-silent).",
     )
     gen.add_argument(
         "--gen-duration", type=float, default=20.0,
-        help="Generated length in seconds (clamped to 30; make it long "
-             "enough for the loop, e.g. >=16s for 8 bars @120 BPM).",
+        help="MusicGen only: length in seconds (clamped to 30; >=16s "
+             "for an 8-bar @120 BPM loop). Ignored by Lyria.",
     )
     gen.add_argument(
-        "--gen-model", default="facebook/musicgen-small",
-        help="MusicGen checkpoint (small is CPU-friendly).",
+        "--gen-model", default=None,
+        help="Override the model. Default per backend: "
+             "lyria-3-clip-preview / facebook/musicgen-small.",
     )
     gen.add_argument(
         "--gen-seed", type=int, default=None,
-        help="Torch seed for reproducible generation.",
+        help="MusicGen only: torch seed for reproducible generation.",
+    )
+    gen.add_argument(
+        "--gen-api-key", default=None,
+        help="Lyria only: API key (else GOOGLE_API_KEY / GEMINI_API_KEY).",
     )
     parser.add_argument(
         "--bars", type=int, default=16, choices=(8, 16, 32, 64),
@@ -151,9 +161,11 @@ def main(argv: list[str] | None = None) -> int:
             input_path=args.input,
             output_dir=args.output,
             generate_prompt=args.generate,
+            gen_backend=args.gen_backend,
             gen_duration=args.gen_duration,
             gen_model=args.gen_model,
             gen_seed=args.gen_seed,
+            gen_api_key=args.gen_api_key,
             bars=args.bars,
             beats_per_bar=args.beats_per_bar,
             model=args.model,

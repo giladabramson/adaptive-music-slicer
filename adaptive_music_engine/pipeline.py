@@ -13,6 +13,7 @@ from pathlib import Path
 
 from .analysis import LoopPlan, analyze_loop
 from .errors import AdaptiveMusicEngineError, InputAudioError
+from . import generation
 from .generation import generate_track
 from .metadata import build_config, write_config
 from .separation import separate_stems
@@ -64,9 +65,11 @@ def run_pipeline(
     output_dir: Path,
     *,
     generate_prompt: str | None = None,
+    gen_backend: str = "musicgen",
     gen_duration: float = 20.0,
-    gen_model: str = "facebook/musicgen-small",
+    gen_model: str | None = None,
     gen_seed: int | None = None,
+    gen_api_key: str | None = None,
     bars: int = 16,
     beats_per_bar: int = 4,
     model: str = "htdemucs",
@@ -89,11 +92,14 @@ def run_pipeline(
     output_dir:
         Where sliced loops and ``config.json`` are written.
     generate_prompt:
-        If set, MusicGen synthesises the source track from this text
-        prompt into ``output_dir/generated_input.wav`` (kept), and that
+        If set, the source track is synthesised from this text prompt
+        into ``output_dir/generated_input.{wav,mp3}`` (kept) and that
         becomes the input. ``input_path`` is ignored when set.
-    gen_duration / gen_model / gen_seed:
-        MusicGen length (s), HF checkpoint, and optional seed.
+    gen_backend:
+        ``"lyria"`` (Google API) or ``"musicgen"`` (local HF).
+    gen_duration / gen_model / gen_seed / gen_api_key:
+        Generation knobs (see :func:`~.generation.generate_track`).
+        ``gen_model`` defaults per backend when ``None``.
     bars / beats_per_bar:
         Loop geometry (see :func:`~.analysis.analyze_loop`).
     model:
@@ -120,16 +126,20 @@ def run_pipeline(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if generate_prompt:
-        logger.info("Step 0/4 — Generating source track with MusicGen…")
-        gen_path = output_dir / "generated_input.wav"
-        generate_track(
+        logger.info(
+            "Step 0/4 — Generating source track (%s)…", gen_backend
+        )
+        suffix = generation.BACKEND_SUFFIX.get(gen_backend, ".wav")
+        gen_path = output_dir / f"generated_input{suffix}"
+        input_path = generate_track(
             generate_prompt,
             gen_path,
+            backend=gen_backend,
             duration_s=gen_duration,
             model_name=gen_model,
             seed=gen_seed,
+            api_key=gen_api_key,
         )
-        input_path = gen_path
         track_name = _slug(generate_prompt)
     else:
         if input_path is None:

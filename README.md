@@ -5,9 +5,10 @@ produces **adaptive, loop-ready instrument stems** + a `config.json`
 the runtime player consumes.
 
 ```
- text prompt ──0. MusicGen (Hugging Face) ──┐   (optional source)
-                                            ▼
-       input_track.mp3 / generated_input.wav
+ text prompt ──0. Lyria (Google API)  ─┐    (optional source)
+             └──   or MusicGen (local) ─┤
+                                        ▼
+       input_track.mp3 / generated_input.{mp3,wav}
                      │
    ├─ 1. Demucs   ── drums / bass / other / vocals  (4 stems)
    ├─ 2. Librosa  ── BPM + beat grid ── exact N-bar LoopPlan
@@ -15,10 +16,16 @@ the runtime player consumes.
    └─ 4. JSON     ── config.json (bpm, loop points, layers+emotions)
 ```
 
-> **MusicGen is instrumental.** Meta trained it without vocals, so the
-> separated `vocals` stem will be near-silent on generated tracks. Real
-> sung vocals would need a separate model (e.g. Bark) layered on — not
-> included here.
+Two generation backends (Step 0 is optional — skip it with `-i`):
+
+- **`--gen-backend lyria`** *(recommended)* — Google Lyria
+  (`lyria-3-clip-preview`) via the `google-genai` SDK. Real,
+  high-quality music; one API call; no local model. Needs
+  `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) with Lyria preview access.
+- **`--gen-backend musicgen`** *(default, offline)* — local
+  `facebook/musicgen-small`. No key, but ~2 GB weights, slow on CPU,
+  and **instrumental** (the Demucs `vocals` stem stays near-silent;
+  real sung vocals would need a separate model such as Bark).
 
 ## Install
 
@@ -63,22 +70,37 @@ by default. This is purely the *intermediate* format — the final loop
 is re-exported to whatever `--format` you choose (WAV by default, so
 your delivered loops are still lossless from that point on).
 
-## Generate the source track (MusicGen)
+## Generate the source track
 
-Skip `--input` and pass `--generate` to synthesise the source with
-Hugging Face MusicGen, then run the same pipeline on it. The generated
-audio is kept at `output/generated_input.wav`.
+Skip `--input` and pass `--generate "PROMPT"` to synthesise the source,
+then run the same pipeline on it. The generated audio is kept at
+`output/generated_input.{mp3,wav}`. `--input` and `--generate` are
+mutually exclusive.
+
+**Lyria (Google API — recommended):**
 
 ```powershell
-python -m adaptive_music_engine `
+$env:GOOGLE_API_KEY = "YOUR_KEY"   # or GEMINI_API_KEY
+python -m adaptive_music_engine --gen-backend lyria `
+    --generate "energetic synthwave, punchy kick, deep bassline, 120 bpm" `
+    -o .\output --bars 8 -v
+```
+
+One API call, real music, no local model. The key needs access to the
+`lyria-3-clip-preview` model. `--gen-duration`/`--gen-seed` don't apply
+(the preview model returns a fixed-length clip).
+
+**MusicGen (local, offline — default):**
+
+```powershell
+python -m adaptive_music_engine --gen-backend musicgen `
     --generate "energetic synthwave, punchy kick, deep bassline, 120 bpm" `
     --gen-duration 30 --gen-seed 42 -o .\output --bars 8 -v
 ```
 
-First `--generate` run downloads ~2 GB of weights to the HF cache;
-CPU inference takes minutes (a GPU is far faster). Keep
-`--gen-duration` long enough for the loop you cut (≥16 s for 8 bars
-@120 BPM). `--input` and `--generate` are mutually exclusive.
+First run downloads ~2 GB of weights to the HF cache; CPU inference
+takes minutes. Keep `--gen-duration` long enough for the loop you cut
+(≥16 s for 8 bars @120 BPM). Instrumental only.
 
 ## Run
 
@@ -159,7 +181,7 @@ print(result.plan.detected_bpm, result.config_path)
 
 | File | Step | Responsibility |
 |---|---|---|
-| `generation.py` | 0 | MusicGen text→music (optional source) |
+| `generation.py` | 0 | Lyria / MusicGen text→music (optional) |
 | `separation.py` | 1 | Demucs subprocess → 4 stems |
 | `analysis.py`   | 2 | Librosa BPM/beats → `LoopPlan` |
 | `slicing.py`    | 3 | pydub slice + export |

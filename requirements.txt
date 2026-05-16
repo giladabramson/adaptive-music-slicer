@@ -13,7 +13,8 @@
 # optional torchcodec on torch>=2.9) and pydub needs ffmpeg to read
 # those MP3 stems back for slicing.
 
-transformers>=4.40     # Step 0 — MusicGen text->music (Hugging Face)
+google-genai>=0.3      # Step 0 — Lyria text->music (Google, recommended)
+transformers>=4.40     # Step 0 — MusicGen text->music (HF, offline alt)
 accelerate>=0.26       # faster/leaner MusicGen weight loading
 sentencepiece>=0.2     # tokenizer backend for MusicGen's T5 text encoder
 demucs>=4.0.0          # Step 1 — source separation (htdemucs 4-stem model)
@@ -22,7 +23,12 @@ pydub>=0.25.1          # Step 3 — sample-accurate slicing & export
 soundfile>=0.12.1      # libsndfile backend used by librosa for WAV/FLAC/etc.
 numpy>=1.24            # numeric helpers (librosa dependency, used directly)
 
-# MusicGen's weights (~2 GB for -small) download once from the Hugging
-# Face Hub to ~/.cache/huggingface on first --generate use. CPU
-# inference is slow (minutes); a GPU is much faster. MusicGen is
-# INSTRUMENTAL — it does not generate vocals.
+# Generation backends (Step 0, optional — only needed with --generate):
+#   --gen-backend lyria     Google Lyria via google-genai. Needs
+#                           GOOGLE_API_KEY (or GEMINI_API_KEY) with
+#                           Lyria preview access. Real music, API call,
+#                           no local model. Recommended for the product.
+#   --gen-backend musicgen  facebook/musicgen-small. ~2 GB weights
+#                           downloaded once to ~/.cache/huggingface;
+#                           slow on CPU; INSTRUMENTAL (no vocals).
+# Neither is required if you always pass your own -i input file.
