@@ -23,17 +23,17 @@ the runtime player consumes.
 ## Install
 
 ```powershell
-# from c:\dev — reuse the workspace virtualenv
+git clone https://github.com/giladabramson/adaptive-music-slicer.git
+cd adaptive-music-slicer
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-cd adaptive_music_engine
 pip install -r requirements.txt
 ```
 
-`pip install -r requirements.txt` resolves to:
-
-```
-pip install "demucs>=4.0.0" "librosa>=0.10.1" "pydub>=0.25.1" "soundfile>=0.12.1" "numpy>=1.24"
-```
+`requirements.txt` pulls **demucs** (→ torch/torchaudio), **librosa**,
+**pydub**, **soundfile**, **numpy**, and **transformers / accelerate /
+sentencepiece** for the optional MusicGen generation step. See
+[requirements.txt](requirements.txt) for pinned versions and notes.
 
 `demucs` automatically pulls in `torch` / `torchaudio` (CPU build is
 fine for an MVP — separation just runs slower).
