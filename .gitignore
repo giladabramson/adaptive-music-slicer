@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Engine I/O — generated artifacts, not source
+output/
+_work/
+*.wav
+*.mp3
+*.flac
+!input_track.mp3   # keep a sample input if you add one
+
+# OS / editor
+.DS_Store
+Thumbs.db

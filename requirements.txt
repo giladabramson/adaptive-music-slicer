@@ -1,0 +1,18 @@
+# Adaptive AI Music Engine — Python dependencies
+#
+# Install (CPU is fine for an MVP; demucs will pull in torch automatically):
+#
+#   pip install -r requirements.txt
+#
+# System dependency NOT installable via pip — required for MP3 read/write and
+# for librosa to decode compressed input formats:
+#
+#   ffmpeg   (https://ffmpeg.org/  •  Windows: `winget install Gyan.FFmpeg`)
+#
+# If you only ever feed in .wav and export .wav, ffmpeg is optional.
+
+demucs>=4.0.0          # Step 1 — source separation (htdemucs 4-stem model)
+librosa>=0.10.1        # Step 2 — BPM / beat detection (MIR)
+pydub>=0.25.1          # Step 3 — sample-accurate slicing & export
+soundfile>=0.12.1      # libsndfile backend used by librosa for WAV/FLAC/etc.
+numpy>=1.24            # numeric helpers (librosa dependency, used directly)
