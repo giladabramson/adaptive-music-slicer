@@ -43,12 +43,33 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "-i", "--input", required=True, type=Path,
-        help="Path to the input audio file (e.g. input_track.mp3).",
+        "-i", "--input", type=Path, default=None,
+        help="Path to the input audio file (e.g. input_track.mp3). "
+             "Omit when using --generate.",
     )
     parser.add_argument(
         "-o", "--output", type=Path, default=Path("./output"),
         help="Directory for sliced loops and config.json.",
+    )
+    gen = parser.add_argument_group("generation (Hugging Face MusicGen)")
+    gen.add_argument(
+        "--generate", metavar="PROMPT", default=None,
+        help="Generate the source track from this text prompt instead "
+             "of supplying --input. NOTE: MusicGen is instrumental — "
+             "the vocals stem will be near-silent.",
+    )
+    gen.add_argument(
+        "--gen-duration", type=float, default=20.0,
+        help="Generated length in seconds (clamped to 30; make it long "
+             "enough for the loop, e.g. >=16s for 8 bars @120 BPM).",
+    )
+    gen.add_argument(
+        "--gen-model", default="facebook/musicgen-small",
+        help="MusicGen checkpoint (small is CPU-friendly).",
+    )
+    gen.add_argument(
+        "--gen-seed", type=int, default=None,
+        help="Torch seed for reproducible generation.",
     )
     parser.add_argument(
         "--bars", type=int, default=16, choices=(8, 16, 32, 64),
@@ -119,11 +140,20 @@ def main(argv: list[str] | None = None) -> int:
     )
     logging.getLogger("numba").setLevel(logging.WARNING)
 
+    if not args.input and not args.generate:
+        parser.error("provide an input file (-i) or a --generate prompt.")
+    if args.input and args.generate:
+        parser.error("--input and --generate are mutually exclusive.")
+
     try:
         emotion_overrides = _parse_emotion_overrides(args.emotion)
         result = run_pipeline(
             input_path=args.input,
             output_dir=args.output,
+            generate_prompt=args.generate,
+            gen_duration=args.gen_duration,
+            gen_model=args.gen_model,
+            gen_seed=args.gen_seed,
             bars=args.bars,
             beats_per_bar=args.beats_per_bar,
             model=args.model,

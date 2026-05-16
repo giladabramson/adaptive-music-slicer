@@ -1,17 +1,24 @@
 # Adaptive AI Music Engine — local CLI prototype
 
-Wizard-of-Oz MVP. Takes one flat stereo track and produces **adaptive,
-loop-ready instrument stems** + a `config.json` the runtime player
-consumes.
+Takes a flat track — supplied **or generated from a text prompt** — and
+produces **adaptive, loop-ready instrument stems** + a `config.json`
+the runtime player consumes.
 
 ```
-input_track.mp3
-   │
+ text prompt ──0. MusicGen (Hugging Face) ──┐   (optional source)
+                                            ▼
+       input_track.mp3 / generated_input.wav
+                     │
    ├─ 1. Demucs   ── drums / bass / other / vocals  (4 stems)
    ├─ 2. Librosa  ── BPM + beat grid ── exact N-bar LoopPlan
    ├─ 3. pydub    ── slice every stem at the SAME loop window
    └─ 4. JSON     ── config.json (bpm, loop points, layers+emotions)
 ```
+
+> **MusicGen is instrumental.** Meta trained it without vocals, so the
+> separated `vocals` stem will be near-silent on generated tracks. Real
+> sung vocals would need a separate model (e.g. Bark) layered on — not
+> included here.
 
 ## Install
 
@@ -55,6 +62,23 @@ dependency, so the engine separates to 320 kbps MP3 (near-transparent)
 by default. This is purely the *intermediate* format — the final loop
 is re-exported to whatever `--format` you choose (WAV by default, so
 your delivered loops are still lossless from that point on).
+
+## Generate the source track (MusicGen)
+
+Skip `--input` and pass `--generate` to synthesise the source with
+Hugging Face MusicGen, then run the same pipeline on it. The generated
+audio is kept at `output/generated_input.wav`.
+
+```powershell
+python -m adaptive_music_engine `
+    --generate "energetic synthwave, punchy kick, deep bassline, 120 bpm" `
+    --gen-duration 30 --gen-seed 42 -o .\output --bars 8 -v
+```
+
+First `--generate` run downloads ~2 GB of weights to the HF cache;
+CPU inference takes minutes (a GPU is far faster). Keep
+`--gen-duration` long enough for the loop you cut (≥16 s for 8 bars
+@120 BPM). `--input` and `--generate` are mutually exclusive.
 
 ## Run
 
@@ -135,10 +159,11 @@ print(result.plan.detected_bpm, result.config_path)
 
 | File | Step | Responsibility |
 |---|---|---|
+| `generation.py` | 0 | MusicGen text→music (optional source) |
 | `separation.py` | 1 | Demucs subprocess → 4 stems |
 | `analysis.py`   | 2 | Librosa BPM/beats → `LoopPlan` |
 | `slicing.py`    | 3 | pydub slice + export |
 | `metadata.py`   | 4 | build/write `config.json` |
-| `pipeline.py`   | — | orchestrates 1–4, temp cleanup |
+| `pipeline.py`   | — | orchestrates 0–4, temp cleanup |
 | `cli.py`        | — | argparse front-end |
 | `errors.py`     | — | typed exception hierarchy |

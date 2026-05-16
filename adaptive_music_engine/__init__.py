@@ -18,17 +18,21 @@ from .errors import (
     InputAudioError,
     LoopSlicingError,
     StemSeparationError,
+    TrackGenerationError,
 )
+from .generation import generate_track
 from .pipeline import PipelineResult, run_pipeline
 
 __all__ = [
     "__version__",
     "run_pipeline",
     "PipelineResult",
+    "generate_track",
     "analyze_loop",
     "LoopPlan",
     "AdaptiveMusicEngineError",
     "InputAudioError",
+    "TrackGenerationError",
     "StemSeparationError",
     "AudioAnalysisError",
     "LoopSlicingError",

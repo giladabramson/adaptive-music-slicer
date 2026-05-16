@@ -17,6 +17,10 @@ class InputAudioError(AdaptiveMusicEngineError):
     """The input file is missing, unreadable, or not decodable audio."""
 
 
+class TrackGenerationError(AdaptiveMusicEngineError):
+    """MusicGen is unavailable or failed to generate a source track."""
+
+
 class StemSeparationError(AdaptiveMusicEngineError):
     """Demucs is unavailable or failed to produce the expected stems."""
 

@@ -13,6 +13,7 @@ from pathlib import Path
 
 from .analysis import LoopPlan, analyze_loop
 from .errors import AdaptiveMusicEngineError, InputAudioError
+from .generation import generate_track
 from .metadata import build_config, write_config
 from .separation import separate_stems
 from .slicing import slice_all_stems
@@ -35,6 +36,13 @@ class PipelineResult:
     output_dir: Path
 
 
+def _slug(text: str, max_words: int = 6) -> str:
+    """Filesystem-safe track name from a generation prompt."""
+    words = "".join(c if c.isalnum() or c.isspace() else " "
+                     for c in text).split()
+    return "_".join(words[:max_words]).lower() or "generated"
+
+
 def _validate_input(input_path: Path) -> None:
     """Fail fast with a clear message before doing any heavy work."""
     if not input_path.exists():
@@ -52,9 +60,13 @@ def _validate_input(input_path: Path) -> None:
 
 
 def run_pipeline(
-    input_path: Path,
+    input_path: Path | None,
     output_dir: Path,
     *,
+    generate_prompt: str | None = None,
+    gen_duration: float = 20.0,
+    gen_model: str = "facebook/musicgen-small",
+    gen_seed: int | None = None,
     bars: int = 16,
     beats_per_bar: int = 4,
     model: str = "htdemucs",
@@ -72,9 +84,16 @@ def run_pipeline(
     Parameters
     ----------
     input_path:
-        Flat stereo source track.
+        Flat source track. May be ``None`` iff ``generate_prompt`` is
+        given (the track is then generated with MusicGen first).
     output_dir:
         Where sliced loops and ``config.json`` are written.
+    generate_prompt:
+        If set, MusicGen synthesises the source track from this text
+        prompt into ``output_dir/generated_input.wav`` (kept), and that
+        becomes the input. ``input_path`` is ignored when set.
+    gen_duration / gen_model / gen_seed:
+        MusicGen length (s), HF checkpoint, and optional seed.
     bars / beats_per_bar:
         Loop geometry (see :func:`~.analysis.analyze_loop`).
     model:
@@ -97,13 +116,32 @@ def run_pipeline(
     AdaptiveMusicEngineError
         Any expected failure in steps 1-4 (already typed/messaged).
     """
-    input_path = input_path.expanduser().resolve()
     output_dir = output_dir.expanduser().resolve()
-    _validate_input(input_path)
-
-    track_name = input_path.stem
-    work_dir = output_dir / "_work"
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    if generate_prompt:
+        logger.info("Step 0/4 — Generating source track with MusicGen…")
+        gen_path = output_dir / "generated_input.wav"
+        generate_track(
+            generate_prompt,
+            gen_path,
+            duration_s=gen_duration,
+            model_name=gen_model,
+            seed=gen_seed,
+        )
+        input_path = gen_path
+        track_name = _slug(generate_prompt)
+    else:
+        if input_path is None:
+            raise InputAudioError(
+                "No input given: pass an audio file (-i) or a "
+                "--generate prompt."
+            )
+        input_path = input_path.expanduser().resolve()
+        _validate_input(input_path)
+        track_name = input_path.stem
+
+    work_dir = output_dir / "_work"
 
     try:
         # --- Step 1: source separation -------------------------------
