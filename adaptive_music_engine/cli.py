@@ -58,24 +58,32 @@ def build_parser() -> argparse.ArgumentParser:
              "of supplying --input.",
     )
     gen.add_argument(
-        "--gen-backend", choices=("lyria", "musicgen"), default="musicgen",
-        help="lyria = Google API (real music, needs GOOGLE_API_KEY / "
-             "GEMINI_API_KEY); musicgen = local Hugging Face (offline, "
-             "instrumental only — vocals stem stays near-silent).",
+        "--gen-backend",
+        choices=("lyria", "musicgen", "stable-audio", "audioldm", "beatoven"),
+        default="musicgen",
+        help="lyria = Google API (GOOGLE_API_KEY / GEMINI_API_KEY); "
+             "musicgen = local Hugging Face (offline, instrumental); "
+             "stable-audio = Stability AI via Replicate "
+             "(REPLICATE_API_TOKEN); audioldm = haoheliu/audio-ldm via "
+             "Replicate (REPLICATE_API_TOKEN); beatoven = Beatoven.ai "
+             "via fal.ai (FAL_KEY).",
     )
     gen.add_argument(
         "--gen-duration", type=float, default=20.0,
-        help="MusicGen only: length in seconds (clamped to 30; >=16s "
-             "for an 8-bar @120 BPM loop). Ignored by Lyria.",
+        help="Length in seconds. Honored by musicgen (<=30), "
+             "stable-audio (<=190), audioldm (<=30), and beatoven "
+             "(<=150) — each clamps with a warning. Ignored by Lyria "
+             "(returns a fixed-length clip).",
     )
     gen.add_argument(
         "--gen-model", default=None,
-        help="Override the model. Default per backend: "
-             "lyria-3-clip-preview / facebook/musicgen-small.",
+        help="Override the model / Replicate slug / fal endpoint. "
+             "Defaults per backend (see generation.DEFAULT_MODELS).",
     )
     gen.add_argument(
         "--gen-seed", type=int, default=None,
-        help="MusicGen only: torch seed for reproducible generation.",
+        help="Reproducibility seed (musicgen torch seed; forwarded to "
+             "stable-audio and audioldm as the model's seed input).",
     )
     gen.add_argument(
         "--gen-api-key", default=None,
@@ -97,10 +105,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--mp3-bitrate", default="320k",
         help="CBR bitrate when --format mp3.",
-    )
-    parser.add_argument(
-        "--model", default="htdemucs",
-        help="Demucs model name (must be a 4-source model).",
     )
     parser.add_argument(
         "--manual-bpm", type=float, default=None,
@@ -126,7 +130,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--keep-temp", action="store_true",
-        help="Keep the intermediate Demucs working directory.",
+        help="Keep the intermediate separator working directory.",
     )
     parser.add_argument(
         "-v", "--verbose", action="store_true",
@@ -168,7 +172,6 @@ def main(argv: list[str] | None = None) -> int:
             gen_api_key=args.gen_api_key,
             bars=args.bars,
             beats_per_bar=args.beats_per_bar,
-            model=args.model,
             export_format=args.export_format,
             mp3_bitrate=args.mp3_bitrate,
             manual_bpm=args.manual_bpm,

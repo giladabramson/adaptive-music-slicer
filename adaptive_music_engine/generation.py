@@ -18,9 +18,23 @@ Backends
     Meta trained it without vocals, so the Demucs ``vocals`` stem will
     be near-silent on MusicGen tracks.
 
+``stable-audio`` (Stability AI, via Replicate)
+    ``stability-ai/stable-audio-2.5``. High-quality instrumental,
+    long-form (up to ~190 s in one call). Needs ``REPLICATE_API_TOKEN``.
+
+``audioldm`` (haoheliu/audio-ldm, via Replicate)
+    Latent-diffusion model with a distinctly *ambient/atmospheric*
+    aesthetic. Cheap, good for textural background. Needs
+    ``REPLICATE_API_TOKEN`` (same as ``stable-audio``).
+
+``beatoven`` (Beatoven.ai, via fal.ai)
+    Purpose-built for background music (video/podcast/game beds).
+    Flat per-request pricing, up to ~150 s. Needs ``FAL_KEY``.
+
 All heavy/optional imports (``torch``/``transformers`` for MusicGen,
-``google-genai`` for Lyria) are lazy, so importing this module — and
-the package — stays cheap and never fails on a missing optional dep.
+``google-genai`` for Lyria, ``replicate`` / ``fal-client`` for the
+hosted backends) are lazy, so importing this module — and the package
+— stays cheap and never fails on a missing optional dep.
 """
 
 from __future__ import annotations
@@ -36,21 +50,40 @@ from .errors import TrackGenerationError
 logger = logging.getLogger("adaptive_music_engine")
 
 #: Selectable backends.
-BACKENDS = ("lyria", "musicgen")
+BACKENDS = ("lyria", "musicgen", "stable-audio", "audioldm", "beatoven")
+
+#: Replicate / fal endpoint slugs (also used as the default model name
+#: for each hosted backend).
+_REPLICATE_STABLE_AUDIO_SLUG = "stability-ai/stable-audio-2.5"
+_REPLICATE_AUDIOLDM_SLUG = "haoheliu/audio-ldm"
+_FAL_BEATOVEN_SLUG = "beatoven/music-generation"
 
 #: Per-backend default model when ``model_name`` is not given.
 DEFAULT_MODELS = {
     "lyria": "lyria-3-clip-preview",
     "musicgen": "facebook/musicgen-small",
+    "stable-audio": _REPLICATE_STABLE_AUDIO_SLUG,
+    "audioldm": _REPLICATE_AUDIOLDM_SLUG,
+    "beatoven": _FAL_BEATOVEN_SLUG,
 }
 
 #: File extension each backend's audio is written as.
-BACKEND_SUFFIX = {"lyria": ".mp3", "musicgen": ".wav"}
+BACKEND_SUFFIX = {
+    "lyria": ".mp3",
+    "musicgen": ".wav",
+    "stable-audio": ".wav",
+    "audioldm": ".wav",
+    "beatoven": ".mp3",
+}
 
 #: API-key env vars tried in order for the Lyria backend. librono uses
 #: GOOGLE_API_KEY; the watchdog uses GEMINI_API_KEY — same key value
 #: usually works for both, so we accept either.
 _LYRIA_KEY_ENV = ("GOOGLE_API_KEY", "GEMINI_API_KEY")
+
+#: API-key env vars for the hosted backends.
+_REPLICATE_KEY_ENV = ("REPLICATE_API_TOKEN",)
+_FAL_KEY_ENV = ("FAL_KEY",)
 
 #: Service name under which the key may be stored in the OS secret
 #: store (Windows Credential Manager / macOS Keychain) via ``keyring``.
@@ -60,6 +93,15 @@ _KEYRING_SERVICE = "adaptive-music-slicer"
 _TOKENS_PER_SECOND = 50
 #: One-shot generation ceiling for the small MusicGen model (~30 s).
 _MAX_DURATION_S = 30.0
+
+#: Max duration (seconds) accepted by each hosted backend, used for a
+#: clamp + warning. Lyria ignores duration (fixed clip); MusicGen has
+#: its own constant above.
+_BACKEND_MAX_DURATION = {
+    "stable-audio": 190.0,
+    "audioldm": 30.0,
+    "beatoven": 150.0,
+}
 
 
 def generate_track(
@@ -83,18 +125,24 @@ def generate_track(
         Destination file. The caller is responsible for giving it the
         right suffix for ``backend`` (see :data:`BACKEND_SUFFIX`).
     backend:
-        ``"lyria"`` or ``"musicgen"``.
+        ``"lyria"``, ``"musicgen"``, ``"stable-audio"``, ``"audioldm"``,
+        or ``"beatoven"``.
     duration_s:
-        MusicGen only — requested length, clamped to (0, 30]. Ignored
-        by Lyria (the preview model returns a fixed-length clip).
+        Requested length in seconds. Honored by ``musicgen``,
+        ``stable-audio``, ``audioldm``, and ``beatoven`` (each with its
+        own max, clamped with a warning). Ignored by ``lyria`` (the
+        preview model returns a fixed-length clip).
     model_name:
-        Override the model. Defaults per backend
-        (:data:`DEFAULT_MODELS`).
+        Override the model / Replicate slug / fal endpoint. Defaults
+        per backend (:data:`DEFAULT_MODELS`).
     seed:
-        MusicGen only — torch manual seed for reproducibility.
+        Forwarded to ``musicgen`` (torch) and the Replicate-hosted
+        backends. Ignored by ``lyria`` and ``beatoven``.
     api_key:
         Lyria only — explicit key; otherwise read from
-        ``GOOGLE_API_KEY`` / ``GEMINI_API_KEY``.
+        ``GOOGLE_API_KEY`` / ``GEMINI_API_KEY``. The hosted backends
+        read their tokens from env / keyring directly
+        (``REPLICATE_API_TOKEN``, ``FAL_KEY``).
 
     Returns
     -------
@@ -120,8 +168,18 @@ def generate_track(
 
     if backend == "lyria":
         return _generate_lyria(prompt, out_path, model=model, api_key=api_key)
-    return _generate_musicgen(
-        prompt, out_path, duration_s=duration_s, model=model, seed=seed
+    if backend == "musicgen":
+        return _generate_musicgen(
+            prompt, out_path, duration_s=duration_s, model=model, seed=seed
+        )
+    if backend in ("stable-audio", "audioldm"):
+        return _generate_replicate(
+            prompt, out_path, backend=backend, model=model,
+            duration_s=duration_s, seed=seed,
+        )
+    # backend == "beatoven" (BACKENDS check above prevents other values)
+    return _generate_beatoven(
+        prompt, out_path, model=model, duration_s=duration_s
     )
 
 
@@ -353,4 +411,278 @@ def _generate_musicgen(
 
     logger.info("  -> wrote %s (%.1fs @ %d Hz)",
                 out_path.name, wav.size / float(sr), sr)
+    return out_path
+
+
+# --------------------------------------------------------------------- #
+# Shared helpers for the hosted (Replicate / fal.ai) backends            #
+# --------------------------------------------------------------------- #
+def _resolve_hosted_key(
+    env_vars: tuple[str, ...],
+    *,
+    backend_label: str,
+    setx_example: str,
+    where_to_get: str,
+) -> str:
+    """Generic env-var + keyring resolver for a hosted-backend token.
+
+    Same resolution order as :func:`_resolve_lyria_key`: explicit arg
+    is handled by the caller; here we try env vars then ``keyring``.
+    """
+    for env in env_vars:
+        val = os.getenv(env)
+        if val:
+            return val
+    try:
+        import keyring
+
+        for username in env_vars:
+            val = keyring.get_password(_KEYRING_SERVICE, username)
+            if val:
+                return val
+    except Exception:
+        pass
+
+    primary = env_vars[0]
+    raise TrackGenerationError(
+        f"{backend_label} backend needs an API token. Provide it:\n"
+        f"  • Env var {primary}:\n"
+        f"      {setx_example}   (then open a new terminal)\n"
+        "  • OS secret store (encrypted, recommended) — run once:\n"
+        '      python -c "import keyring; keyring.set_password'
+        f"('{_KEYRING_SERVICE}', '{primary}', 'YOUR_TOKEN')\"\n"
+        f"Get a token at {where_to_get}"
+    )
+
+
+def _download_url(url: str, *, timeout: float = 120.0) -> bytes:
+    """Fetch a URL with stdlib so we don't take a hard dep on requests."""
+    from urllib.request import urlopen
+
+    with urlopen(url, timeout=timeout) as resp:
+        return resp.read()
+
+
+# --------------------------------------------------------------------- #
+# Replicate backends (Stable Audio 2.5, AudioLDM)                        #
+# --------------------------------------------------------------------- #
+def _replicate_inputs(backend: str, prompt: str, duration_s: float,
+                      seed: int | None) -> dict:
+    """Build the input dict for the right Replicate slug.
+
+    The two Replicate models use different parameter names; pin each
+    explicitly so we don't send unknown keys.
+    """
+    inputs: dict = {}
+    if backend == "stable-audio":
+        # Stability's Replicate model uses `prompt` + `seconds_total`.
+        inputs["prompt"] = prompt
+        inputs["seconds_total"] = int(duration_s)
+    elif backend == "audioldm":
+        # haoheliu/audio-ldm uses `text` + `duration`.
+        inputs["text"] = prompt
+        inputs["duration"] = float(duration_s)
+    else:
+        inputs["prompt"] = prompt
+    if seed is not None:
+        inputs["seed"] = int(seed)
+    return inputs
+
+
+def _replicate_first_file_bytes(output) -> bytes:
+    """Tolerantly extract audio bytes from a ``replicate.run()`` return.
+
+    Replicate models return either a single ``FileOutput`` object, an
+    iterable of them, a single URL string, or an iterable of URL
+    strings — handle all four shapes without committing to one.
+    """
+    if hasattr(output, "read") and callable(getattr(output, "read")):
+        try:
+            return output.read()
+        except Exception:
+            pass
+
+    if isinstance(output, str):
+        if output.startswith(("http://", "https://")):
+            return _download_url(output)
+        return b""
+
+    try:
+        for item in output:
+            if hasattr(item, "read") and callable(getattr(item, "read")):
+                try:
+                    return item.read()
+                except Exception:
+                    continue
+            if isinstance(item, (bytes, bytearray)):
+                return bytes(item)
+            if isinstance(item, str) and item.startswith(
+                ("http://", "https://")
+            ):
+                return _download_url(item)
+    except TypeError:
+        pass
+    return b""
+
+
+def _generate_replicate(
+    prompt: str,
+    out_path: Path,
+    *,
+    backend: str,
+    model: str,
+    duration_s: float,
+    seed: int | None,
+) -> Path:
+    token = _resolve_hosted_key(
+        _REPLICATE_KEY_ENV,
+        backend_label="Replicate",
+        setx_example='setx REPLICATE_API_TOKEN "r8_..."',
+        where_to_get="https://replicate.com/account/api-tokens",
+    )
+
+    try:
+        import replicate
+    except ImportError as exc:
+        raise TrackGenerationError(
+            "Replicate backend needs the 'replicate' package. Install "
+            "with:\n  pip install -r requirements.txt"
+        ) from exc
+
+    max_s = _BACKEND_MAX_DURATION.get(backend, 30.0)
+    if duration_s <= 0:
+        raise TrackGenerationError("--gen-duration must be > 0.")
+    if duration_s > max_s:
+        logger.warning(
+            "Requested %.1fs exceeds %s's %.0fs limit; clamping to %.0fs.",
+            duration_s, backend, max_s, max_s,
+        )
+        duration_s = max_s
+
+    # The replicate SDK reads REPLICATE_API_TOKEN from the env; make
+    # sure it's set if the user stored the token only in keyring.
+    os.environ.setdefault("REPLICATE_API_TOKEN", token)
+
+    inputs = _replicate_inputs(backend, prompt, duration_s, seed)
+    logger.info(
+        "Generating with Replicate '%s' (~%.0fs)…", model, duration_s
+    )
+    try:
+        output = replicate.run(model, input=inputs)
+    except Exception as exc:
+        raise TrackGenerationError(
+            f"Replicate request failed for '{model}': {exc}\n"
+            "Common causes: invalid token, model version moved, or "
+            "quota/credit exhausted."
+        ) from exc
+
+    audio_bytes = _replicate_first_file_bytes(output)
+    if not audio_bytes:
+        raise TrackGenerationError(
+            f"Replicate model '{model}' returned no audio (response "
+            f"shape: {type(output).__name__}). Try a different prompt "
+            "or check the model's recent input-schema updates."
+        )
+
+    try:
+        out_path.write_bytes(audio_bytes)
+    except OSError as exc:
+        raise TrackGenerationError(
+            f"Failed to write generated audio to '{out_path}': {exc}"
+        ) from exc
+
+    logger.info("  -> wrote %s (%d bytes)",
+                out_path.name, out_path.stat().st_size)
+    return out_path
+
+
+# --------------------------------------------------------------------- #
+# Beatoven backend (fal.ai)                                              #
+# --------------------------------------------------------------------- #
+def _beatoven_audio_url(result) -> str:
+    """Tolerantly pull the audio URL from a ``fal_client.run()`` return.
+
+    fal endpoints return a dict; the key naming isn't stable across
+    models, so try the handful of shapes that show up in practice.
+    """
+    if not isinstance(result, dict):
+        return ""
+    for key in ("audio", "audio_file", "output", "result"):
+        val = result.get(key)
+        if isinstance(val, dict) and isinstance(val.get("url"), str):
+            return val["url"]
+    for key in ("audio_url", "url"):
+        val = result.get(key)
+        if isinstance(val, str) and val.startswith(("http://", "https://")):
+            return val
+    return ""
+
+
+def _generate_beatoven(
+    prompt: str,
+    out_path: Path,
+    *,
+    model: str,
+    duration_s: float,
+) -> Path:
+    key = _resolve_hosted_key(
+        _FAL_KEY_ENV,
+        backend_label="Beatoven (fal.ai)",
+        setx_example='setx FAL_KEY "..."',
+        where_to_get="https://fal.ai/dashboard/keys",
+    )
+
+    try:
+        import fal_client
+    except ImportError as exc:
+        raise TrackGenerationError(
+            "Beatoven backend needs the 'fal-client' package. Install "
+            "with:\n  pip install -r requirements.txt"
+        ) from exc
+
+    max_s = _BACKEND_MAX_DURATION["beatoven"]
+    if duration_s <= 0:
+        raise TrackGenerationError("--gen-duration must be > 0.")
+    if duration_s > max_s:
+        logger.warning(
+            "Requested %.1fs exceeds Beatoven's %.0fs limit; clamping.",
+            duration_s, max_s,
+        )
+        duration_s = max_s
+
+    os.environ.setdefault("FAL_KEY", key)
+
+    arguments = {"prompt": prompt, "duration": int(duration_s)}
+    logger.info(
+        "Generating with Beatoven (fal.ai) '%s' (~%.0fs)…", model, duration_s
+    )
+    try:
+        result = fal_client.run(model, arguments=arguments)
+    except Exception as exc:
+        raise TrackGenerationError(
+            f"Beatoven (fal.ai) request failed: {exc}\n"
+            "Common causes: invalid FAL_KEY, quota exhausted, or the "
+            "endpoint slug moved."
+        ) from exc
+
+    audio_url = _beatoven_audio_url(result)
+    if not audio_url:
+        shape = (
+            list(result.keys()) if isinstance(result, dict)
+            else type(result).__name__
+        )
+        raise TrackGenerationError(
+            f"Beatoven returned no audio URL. Response shape: {shape}"
+        )
+
+    try:
+        audio_bytes = _download_url(audio_url)
+        out_path.write_bytes(audio_bytes)
+    except Exception as exc:
+        raise TrackGenerationError(
+            f"Failed to download/write Beatoven audio: {exc}"
+        ) from exc
+
+    logger.info("  -> wrote %s (%d bytes)",
+                out_path.name, out_path.stat().st_size)
     return out_path

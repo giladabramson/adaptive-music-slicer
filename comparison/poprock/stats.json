@@ -1,0 +1,82 @@
+{
+  "demucs": {
+    "stems": {
+      "drums": {
+        "rms_dbfs": -22.61,
+        "peak_dbfs": -1.04,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "bass": {
+        "rms_dbfs": -22.55,
+        "peak_dbfs": -12.71,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "other": {
+        "rms_dbfs": -25.03,
+        "peak_dbfs": -4.55,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "vocals": {
+        "rms_dbfs": -18.57,
+        "peak_dbfs": -3.3,
+        "duration_s": 30.77,
+        "near_silent": false
+      }
+    },
+    "bleed": {
+      "drums_x_bass": -0.053,
+      "other_x_vocals": -0.265,
+      "drums_x_other": -0.098,
+      "bass_x_other": 0.27
+    }
+  },
+  "roformer_hybrid": {
+    "stems": {
+      "drums": {
+        "rms_dbfs": -22.82,
+        "peak_dbfs": -1.28,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "bass": {
+        "rms_dbfs": -23.9,
+        "peak_dbfs": -13.87,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "other": {
+        "rms_dbfs": -25.71,
+        "peak_dbfs": -10.43,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "vocals": {
+        "rms_dbfs": -19.69,
+        "peak_dbfs": -3.71,
+        "duration_s": 30.77,
+        "near_silent": false
+      }
+    },
+    "bleed": {
+      "drums_x_bass": -0.007,
+      "other_x_vocals": -0.23,
+      "drums_x_other": -0.068,
+      "bass_x_other": 0.375
+    }
+  },
+  "timing": {
+    "demucs_s": 22.1,
+    "hybrid_s": 204.8
+  },
+  "models": {
+    "demucs": "htdemucs.yaml",
+    "roformer_hybrid": {
+      "vocals": "model_bs_roformer_ep_368_sdr_12.9628.ckpt",
+      "rest": "htdemucs_ft.yaml"
+    }
+  },
+  "source": "C:\\adaptive-music-slicer\\songs\\poprock\\generated_input.mp3"
+}

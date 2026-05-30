@@ -1,0 +1,82 @@
+{
+  "demucs": {
+    "stems": {
+      "drums": {
+        "rms_dbfs": -19.23,
+        "peak_dbfs": -1.26,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "bass": {
+        "rms_dbfs": -21.09,
+        "peak_dbfs": -7.4,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "other": {
+        "rms_dbfs": -24.71,
+        "peak_dbfs": -3.5,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "vocals": {
+        "rms_dbfs": -20.6,
+        "peak_dbfs": -3.49,
+        "duration_s": 30.77,
+        "near_silent": false
+      }
+    },
+    "bleed": {
+      "drums_x_bass": 0.179,
+      "other_x_vocals": -0.627,
+      "drums_x_other": 0.072,
+      "bass_x_other": 0.096
+    }
+  },
+  "roformer_hybrid": {
+    "stems": {
+      "drums": {
+        "rms_dbfs": -19.3,
+        "peak_dbfs": -1.26,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "bass": {
+        "rms_dbfs": -22.25,
+        "peak_dbfs": -8.21,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "other": {
+        "rms_dbfs": -25.93,
+        "peak_dbfs": -4.78,
+        "duration_s": 30.77,
+        "near_silent": false
+      },
+      "vocals": {
+        "rms_dbfs": -21.79,
+        "peak_dbfs": -4.66,
+        "duration_s": 30.77,
+        "near_silent": false
+      }
+    },
+    "bleed": {
+      "drums_x_bass": 0.184,
+      "other_x_vocals": -0.636,
+      "drums_x_other": 0.072,
+      "bass_x_other": 0.097
+    }
+  },
+  "timing": {
+    "demucs_s": 20.7,
+    "hybrid_s": 190.4
+  },
+  "models": {
+    "demucs": "htdemucs.yaml",
+    "roformer_hybrid": {
+      "vocals": "model_bs_roformer_ep_368_sdr_12.9628.ckpt",
+      "rest": "htdemucs_ft.yaml"
+    }
+  },
+  "source": "C:\\adaptive-music-slicer\\songs\\vocals\\generated_input.mp3"
+}

@@ -1,35 +1,41 @@
 # Adaptive AI Music Engine — Python dependencies
 #
-# Install (CPU is fine for an MVP; demucs will pull in torch automatically):
+# Install (CPU works but is slow; CUDA torch ≈3× faster, see README):
 #
 #   pip install -r requirements.txt
 #
-# System dependency NOT installable via pip — required for MP3 read/write and
-# for librosa to decode compressed input formats:
+# System dependency NOT installable via pip — required by pydub for MP3
+# export and by librosa to decode compressed input formats:
 #
 #   ffmpeg   (https://ffmpeg.org/  •  Windows: `winget install Gyan.FFmpeg`)
-#
-# ffmpeg is REQUIRED: Demucs separates to MP3 (its WAV writer needs the
-# optional torchcodec on torch>=2.9) and pydub needs ffmpeg to read
-# those MP3 stems back for slicing.
 
-google-genai>=0.3      # Step 0 — Lyria text->music (Google, recommended)
-keyring>=24            # optional: read Lyria key from OS secret store
-transformers>=4.40     # Step 0 — MusicGen text->music (HF, offline alt)
-accelerate>=0.26       # faster/leaner MusicGen weight loading
-sentencepiece>=0.2     # tokenizer backend for MusicGen's T5 text encoder
-demucs>=4.0.0          # Step 1 — source separation (htdemucs 4-stem model)
-librosa>=0.10.1        # Step 2 — BPM / beat detection (MIR)
-pydub>=0.25.1          # Step 3 — sample-accurate slicing & export
-soundfile>=0.12.1      # libsndfile backend used by librosa for WAV/FLAC/etc.
-numpy>=1.24            # numeric helpers (librosa dependency, used directly)
+google-genai>=0.3        # Step 0 — Lyria text->music (Google, recommended)
+keyring>=24              # optional: read API tokens from OS secret store
+transformers>=4.40       # Step 0 — MusicGen text->music (HF, offline alt)
+accelerate>=0.26         # faster/leaner MusicGen weight loading
+sentencepiece>=0.2       # tokenizer backend for MusicGen's T5 text encoder
+replicate>=1.0           # Step 0 — Stable Audio 2.5 + AudioLDM (Replicate)
+fal-client>=0.4          # Step 0 — Beatoven music generation (fal.ai)
+audio-separator>=0.44.0  # Step 1 — BS-Roformer + Demucs htdemucs_ft hybrid
+onnxruntime>=1.20.0      # ONNX backend required by audio-separator (CPU build)
+librosa>=0.10.1          # Step 2 — BPM / beat detection (MIR)
+pydub>=0.25.1            # Step 3 — sample-accurate slicing & export
+soundfile>=0.12.1        # libsndfile backend used by librosa for WAV/FLAC/etc.
+numpy>=1.24              # numeric helpers (librosa dependency, used directly)
 
 # Generation backends (Step 0, optional — only needed with --generate):
-#   --gen-backend lyria     Google Lyria via google-genai. Needs
-#                           GOOGLE_API_KEY (or GEMINI_API_KEY) with
-#                           Lyria preview access. Real music, API call,
-#                           no local model. Recommended for the product.
-#   --gen-backend musicgen  facebook/musicgen-small. ~2 GB weights
-#                           downloaded once to ~/.cache/huggingface;
-#                           slow on CPU; INSTRUMENTAL (no vocals).
-# Neither is required if you always pass your own -i input file.
+#   --gen-backend lyria          Google Lyria via google-genai. Needs
+#                                GOOGLE_API_KEY (or GEMINI_API_KEY) with
+#                                Lyria preview access. Real music, API
+#                                call, no local model. Recommended.
+#   --gen-backend musicgen       facebook/musicgen-small. ~2 GB weights
+#                                downloaded once to ~/.cache/huggingface;
+#                                slow on CPU; INSTRUMENTAL (no vocals).
+#   --gen-backend stable-audio   Stability AI Stable Audio 2.5 via
+#                                Replicate. Needs REPLICATE_API_TOKEN.
+#                                Long-form (<=190 s), strong instrumental.
+#   --gen-backend audioldm       haoheliu/audio-ldm via Replicate. Needs
+#                                REPLICATE_API_TOKEN. Ambient/atmospheric.
+#   --gen-backend beatoven       Beatoven.ai via fal.ai. Needs FAL_KEY.
+#                                Purpose-built for background music beds.
+# None are required if you always pass your own -i input file.

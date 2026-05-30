@@ -1,0 +1,82 @@
+{
+  "demucs": {
+    "stems": {
+      "drums": {
+        "rms_dbfs": -25.68,
+        "peak_dbfs": -1.38,
+        "duration_s": 29.94,
+        "near_silent": false
+      },
+      "bass": {
+        "rms_dbfs": -28.81,
+        "peak_dbfs": -14.96,
+        "duration_s": 29.94,
+        "near_silent": false
+      },
+      "other": {
+        "rms_dbfs": -16.47,
+        "peak_dbfs": -2.03,
+        "duration_s": 29.94,
+        "near_silent": false
+      },
+      "vocals": {
+        "rms_dbfs": -57.67,
+        "peak_dbfs": -46.31,
+        "duration_s": 29.94,
+        "near_silent": true
+      }
+    },
+    "bleed": {
+      "drums_x_bass": 0.164,
+      "other_x_vocals": 0.326,
+      "drums_x_other": 0.189,
+      "bass_x_other": -0.039
+    }
+  },
+  "roformer_hybrid": {
+    "stems": {
+      "drums": {
+        "rms_dbfs": -27.06,
+        "peak_dbfs": -3.63,
+        "duration_s": 29.94,
+        "near_silent": false
+      },
+      "bass": {
+        "rms_dbfs": -28.9,
+        "peak_dbfs": -14.65,
+        "duration_s": 29.94,
+        "near_silent": false
+      },
+      "other": {
+        "rms_dbfs": -16.98,
+        "peak_dbfs": -2.54,
+        "duration_s": 29.94,
+        "near_silent": false
+      },
+      "vocals": {
+        "rms_dbfs": -87.96,
+        "peak_dbfs": -49.93,
+        "duration_s": 29.94,
+        "near_silent": true
+      }
+    },
+    "bleed": {
+      "drums_x_bass": 0.245,
+      "other_x_vocals": 0.095,
+      "drums_x_other": 0.17,
+      "bass_x_other": -0.012
+    }
+  },
+  "timing": {
+    "demucs_s": 0.0,
+    "hybrid_s": 0.0
+  },
+  "models": {
+    "demucs": "htdemucs.yaml",
+    "roformer_hybrid": {
+      "vocals": "model_bs_roformer_ep_368_sdr_12.9628.ckpt",
+      "rest": "htdemucs_ft.yaml"
+    }
+  },
+  "source": "C:\\adaptive-music-slicer\\songs\\game\\generated_input.mp3"
+}

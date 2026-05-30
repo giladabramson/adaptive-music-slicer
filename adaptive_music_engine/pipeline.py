@@ -72,7 +72,6 @@ def run_pipeline(
     gen_api_key: str | None = None,
     bars: int = 16,
     beats_per_bar: int = 4,
-    model: str = "htdemucs",
     export_format: str = "wav",
     mp3_bitrate: str = "320k",
     manual_bpm: float | None = None,
@@ -102,8 +101,6 @@ def run_pipeline(
         ``gen_model`` defaults per backend when ``None``.
     bars / beats_per_bar:
         Loop geometry (see :func:`~.analysis.analyze_loop`).
-    model:
-        Demucs model (must be 4-source).
     export_format:
         ``"wav"`` or ``"mp3"``.
     manual_bpm:
@@ -115,7 +112,7 @@ def run_pipeline(
     start_on_beat / start_ms_override:
         Loop-start strategy (see :func:`~.analysis.analyze_loop`).
     keep_temp:
-        Keep the intermediate Demucs output directory for debugging.
+        Keep the intermediate separator output directory for debugging.
 
     Raises
     ------
@@ -155,8 +152,8 @@ def run_pipeline(
 
     try:
         # --- Step 1: source separation -------------------------------
-        logger.info("Step 1/4 — Separating stems with Demucs (%s)…", model)
-        stems = separate_stems(input_path, work_dir, model=model)
+        logger.info("Step 1/4 — Separating stems (BS-Roformer + Demucs htdemucs_ft)…")
+        stems = separate_stems(input_path, work_dir)
         logger.info("  -> %d stems: %s", len(stems), ", ".join(stems))
 
         # --- Step 2: MIR / loop plan ---------------------------------

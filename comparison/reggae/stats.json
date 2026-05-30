@@ -1,0 +1,82 @@
+{
+  "demucs": {
+    "stems": {
+      "drums": {
+        "rms_dbfs": -25.61,
+        "peak_dbfs": -0.92,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "bass": {
+        "rms_dbfs": -18.18,
+        "peak_dbfs": -7.94,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "other": {
+        "rms_dbfs": -29.83,
+        "peak_dbfs": -6.94,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "vocals": {
+        "rms_dbfs": -17.98,
+        "peak_dbfs": -1.59,
+        "duration_s": 30.72,
+        "near_silent": false
+      }
+    },
+    "bleed": {
+      "drums_x_bass": -0.078,
+      "other_x_vocals": -0.015,
+      "drums_x_other": -0.121,
+      "bass_x_other": 0.059
+    }
+  },
+  "roformer_hybrid": {
+    "stems": {
+      "drums": {
+        "rms_dbfs": -25.55,
+        "peak_dbfs": -1.49,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "bass": {
+        "rms_dbfs": -19.59,
+        "peak_dbfs": -9.43,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "other": {
+        "rms_dbfs": -29.78,
+        "peak_dbfs": -7.77,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "vocals": {
+        "rms_dbfs": -19.19,
+        "peak_dbfs": -2.65,
+        "duration_s": 30.72,
+        "near_silent": false
+      }
+    },
+    "bleed": {
+      "drums_x_bass": -0.071,
+      "other_x_vocals": 0.04,
+      "drums_x_other": -0.109,
+      "bass_x_other": 0.089
+    }
+  },
+  "timing": {
+    "demucs_s": 45.2,
+    "hybrid_s": 32.6
+  },
+  "models": {
+    "demucs": "htdemucs.yaml",
+    "roformer_hybrid": {
+      "vocals": "model_bs_roformer_ep_368_sdr_12.9628.ckpt",
+      "rest": "htdemucs_ft.yaml"
+    }
+  },
+  "source": "C:\\adaptive-music-slicer\\songs\\reggae\\generated_input.mp3"
+}

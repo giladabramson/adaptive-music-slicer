@@ -2,7 +2,11 @@
 __pycache__/
 *.py[cod]
 .venv/
+.venv-cuda/
 *.egg-info/
+
+# ML model weights — downloaded on demand, too large for git
+.models/
 
 # Secrets — never commit API keys (repo is public)
 .env

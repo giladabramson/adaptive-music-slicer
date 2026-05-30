@@ -1,0 +1,82 @@
+{
+  "demucs": {
+    "stems": {
+      "drums": {
+        "rms_dbfs": -17.91,
+        "peak_dbfs": -0.92,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "bass": {
+        "rms_dbfs": -23.16,
+        "peak_dbfs": -8.77,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "other": {
+        "rms_dbfs": -26.24,
+        "peak_dbfs": -7.1,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "vocals": {
+        "rms_dbfs": -20.93,
+        "peak_dbfs": -1.91,
+        "duration_s": 30.72,
+        "near_silent": false
+      }
+    },
+    "bleed": {
+      "drums_x_bass": 0.071,
+      "other_x_vocals": -0.647,
+      "drums_x_other": -0.014,
+      "bass_x_other": 0.414
+    }
+  },
+  "roformer_hybrid": {
+    "stems": {
+      "drums": {
+        "rms_dbfs": -18.4,
+        "peak_dbfs": -1.04,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "bass": {
+        "rms_dbfs": -24.78,
+        "peak_dbfs": -10.39,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "other": {
+        "rms_dbfs": -27.92,
+        "peak_dbfs": -8.84,
+        "duration_s": 30.72,
+        "near_silent": false
+      },
+      "vocals": {
+        "rms_dbfs": -22.19,
+        "peak_dbfs": -3.18,
+        "duration_s": 30.72,
+        "near_silent": false
+      }
+    },
+    "bleed": {
+      "drums_x_bass": 0.068,
+      "other_x_vocals": -0.659,
+      "drums_x_other": -0.012,
+      "bass_x_other": 0.408
+    }
+  },
+  "timing": {
+    "demucs_s": 0.0,
+    "hybrid_s": 0.0
+  },
+  "models": {
+    "demucs": "htdemucs.yaml",
+    "roformer_hybrid": {
+      "vocals": "model_bs_roformer_ep_368_sdr_12.9628.ckpt",
+      "rest": "htdemucs_ft.yaml"
+    }
+  },
+  "source": "C:\\adaptive-music-slicer\\songs\\hiphop\\generated_input.mp3"
+}
