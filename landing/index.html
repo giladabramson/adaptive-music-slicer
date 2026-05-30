@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive Music Engine — text-prompt scores for games</title>
+    <meta name="description" content="Generate stem-separated, loop-locked game music from a text prompt. Reacts to tension in real time via four phase-locked stems.">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Vercel Analytics: no-op locally, picks up automatically when deployed to Vercel. -->
+    <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+
+<header class="hero">
+    <div class="container">
+        <p class="kicker">Adaptive Music Engine</p>
+        <h1>Game scores from a text prompt — that react to tension in real time.</h1>
+        <p class="lede">
+            One prompt becomes a flat track via <strong>Lyria / MusicGen /
+            Stable Audio / AudioLDM / Beatoven</strong>. A <strong>BS-Roformer +
+            Demucs htdemucs_ft</strong> hybrid splits it into four phase-locked
+            stems. A 250-line runtime player mixes them live so your game's
+            tension drives the score, not a fade-cut between cues.
+        </p>
+        <p class="meta">
+            Open source · MIT · ~30 s per song on a laptop GPU · runs locally.
+        </p>
+    </div>
+</header>
+
+<section class="player-section">
+    <div class="container player">
+        <div class="player-header">
+            <label for="song-picker">Demo song</label>
+            <select id="song-picker"></select>
+            <div id="song-meta" class="song-meta"></div>
+        </div>
+
+        <div class="transport">
+            <button id="play-btn" class="play">Play</button>
+            <div id="status" class="status">Press play to start</div>
+        </div>
+
+        <div class="presets" role="group" aria-label="Tension preset">
+            <span class="presets-label">Tension</span>
+            <button data-preset="Low" class="preset">Low</button>
+            <button data-preset="Medium" class="preset active">Medium</button>
+            <button data-preset="High" class="preset">High</button>
+        </div>
+
+        <div class="stems" id="stems-list">
+            <div class="stem" data-stem="drums">
+                <span class="stem-name">Drums</span>
+                <input type="range" class="stem-vol" data-stem="drums"
+                       min="0" max="100" step="1" value="100"
+                       aria-label="Drums volume">
+                <button class="stem-toggle stem-mute" data-stem="drums"
+                        type="button" aria-pressed="false"
+                        title="Mute drums">M</button>
+                <button class="stem-toggle stem-solo" data-stem="drums"
+                        type="button" aria-pressed="false"
+                        title="Solo drums">S</button>
+                <div class="meter" id="meter-drums"></div>
+            </div>
+            <div class="stem" data-stem="bass">
+                <span class="stem-name">Bass</span>
+                <input type="range" class="stem-vol" data-stem="bass"
+                       min="0" max="100" step="1" value="100"
+                       aria-label="Bass volume">
+                <button class="stem-toggle stem-mute" data-stem="bass"
+                        type="button" aria-pressed="false"
+                        title="Mute bass">M</button>
+                <button class="stem-toggle stem-solo" data-stem="bass"
+                        type="button" aria-pressed="false"
+                        title="Solo bass">S</button>
+                <div class="meter" id="meter-bass"></div>
+            </div>
+            <div class="stem" data-stem="other">
+                <span class="stem-name">Melody</span>
+                <input type="range" class="stem-vol" data-stem="other"
+                       min="0" max="100" step="1" value="100"
+                       aria-label="Melody volume">
+                <button class="stem-toggle stem-mute" data-stem="other"
+                        type="button" aria-pressed="false"
+                        title="Mute melody">M</button>
+                <button class="stem-toggle stem-solo" data-stem="other"
+                        type="button" aria-pressed="false"
+                        title="Solo melody">S</button>
+                <div class="meter" id="meter-other"></div>
+            </div>
+            <div class="stem" data-stem="vocals">
+                <span class="stem-name">Vocals</span>
+                <input type="range" class="stem-vol" data-stem="vocals"
+                       min="0" max="100" step="1" value="100"
+                       aria-label="Vocals volume">
+                <button class="stem-toggle stem-mute" data-stem="vocals"
+                        type="button" aria-pressed="false"
+                        title="Mute vocals">M</button>
+                <button class="stem-toggle stem-solo" data-stem="vocals"
+                        type="button" aria-pressed="false"
+                        title="Solo vocals">S</button>
+                <div class="meter" id="meter-vocals"></div>
+            </div>
+        </div>
+
+        <div class="fade-row">
+            <label for="fade-range">Stem fade</label>
+            <input type="range" id="fade-range" min="0.3" max="3.0" step="0.1" value="1.5">
+            <span id="fade-value" class="fade-value">1.5s</span>
+        </div>
+
+        <p class="player-hint">
+            Cycle through <kbd>Low</kbd> → <kbd>Medium</kbd> → <kbd>High</kbd>
+            and listen to the stems fade in. They never click or drift —
+            every stem starts at the same audio-context time and Web Audio
+            loops them with sample-accurate sync.
+        </p>
+    </div>
+</section>
+
+<section class="interest">
+    <div class="container">
+        <h2>Would you actually use this?</h2>
+        <p class="interest-lede">
+            I'm thinking about turning the engine into a hosted API — drop in a
+            prompt, get back four phase-locked stems plus a <code>config.json</code>
+            ready for your game. No GPU setup, no model wrangling, no Python.
+        </p>
+        <p class="interest-lede">
+            If that's something you'd use, drop your email and I'll ping you once
+            there's a real version to try. <span class="dim">No spam, no sales calls
+            — just a one-time "it's ready" email.</span>
+        </p>
+        <!--
+          Setup: sign up at https://formspree.io (free, 50 submissions/mo),
+          create a form, replace the "YOUR_FORM_ID" placeholder below with
+          the ID from your form's endpoint. Until then, submits go nowhere.
+        -->
+        <form id="interest-form"
+              action="https://formspree.io/f/YOUR_FORM_ID"
+              method="POST">
+            <input type="email"
+                   name="email"
+                   required
+                   placeholder="you@studio.com"
+                   autocomplete="email">
+            <input type="hidden" name="_subject" value="Adaptive Music Engine — interested">
+            <button type="submit">Notify me</button>
+        </form>
+        <p id="interest-status" class="interest-status" hidden></p>
+        <p class="interest-footnote">
+            Or just <a href="https://github.com/giladabramson/adaptive-music-slicer">open
+            an issue on GitHub</a> with what you'd want it to do.
+        </p>
+    </div>
+</section>
+
+<section class="how">
+    <div class="container">
+        <h2>How it works</h2>
+        <div class="pipeline">
+            <div class="step">
+                <span class="step-num">0</span>
+                <h3>Generate</h3>
+                <p>
+                    Your prompt hits a text-to-music backend — Google Lyria
+                    by default for best quality. MusicGen, Stable Audio,
+                    AudioLDM and Beatoven are drop-in alternatives.
+                </p>
+                <code>--gen-backend lyria | musicgen | stable-audio | audioldm | beatoven</code>
+            </div>
+            <div class="step">
+                <span class="step-num">1</span>
+                <h3>Separate (hybrid)</h3>
+                <p>
+                    <strong>BS-Roformer-Viperx-1296</strong> extracts the
+                    vocals stem (SDR ≈ 12.1, transformer on mel-spectrograms).
+                    <strong>Demucs htdemucs_ft</strong> — a 4-model fine-tuned
+                    ensemble — splits the residual instrumental into
+                    drums / bass / other.
+                </p>
+                <code>BS-Roformer → htdemucs_ft → drums, bass, other, vocals</code>
+            </div>
+            <div class="step">
+                <span class="step-num">2</span>
+                <h3>Lock to a loop</h3>
+                <p>
+                    Librosa detects BPM and the first beat. The engine
+                    computes loop length from tempo (<code>bars × 4 × 60 /
+                    BPM</code>), never from two noisy beat detections —
+                    so loops are exact whole bars and don't drift.
+                </p>
+                <code>BPM × bars → integer-ms loop window</code>
+            </div>
+            <div class="step">
+                <span class="step-num">3</span>
+                <h3>Slice all four stems identically</h3>
+                <p>
+                    All four stems get cut with the same
+                    <code>loop_start_ms</code>/<code>loop_end_ms</code>,
+                    quantised to integer milliseconds exactly once.
+                    Phase-locked. Sub-millisecond seam error.
+                </p>
+            </div>
+            <div class="step">
+                <span class="step-num">4</span>
+                <h3>Play adaptively</h3>
+                <p>
+                    The runtime player drives one mix callback with a
+                    shared playhead. Game tension fades stems in or out
+                    on linear ramps — no crossfade gap, no audible
+                    re-trigger.
+                </p>
+                <code>tension → per-stem gain → realtime mix</code>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="numbers">
+    <div class="container">
+        <h2>Honest numbers</h2>
+        <table>
+            <tr>
+                <th></th>
+                <th>RTX 3050 6GB Laptop</th>
+                <th>T4 cloud GPU</th>
+                <th>A10G cloud GPU</th>
+            </tr>
+            <tr>
+                <td>Separation (hybrid)</td>
+                <td>~30 s</td>
+                <td>~16 s</td>
+                <td>~8 s</td>
+            </tr>
+            <tr>
+                <td>End-to-end (Lyria → stems → config)</td>
+                <td>~95 s</td>
+                <td>~80 s</td>
+                <td>~70 s</td>
+            </tr>
+            <tr>
+                <td>Cost per song</td>
+                <td>free</td>
+                <td>~$0.003</td>
+                <td>~$0.007</td>
+            </tr>
+        </table>
+        <p class="footnote">
+            Local figures measured on an actual run. Cloud figures
+            extrapolated from compute-per-FLOP ratios; the fixed
+            Python/model-load floor is ~15 s regardless of GPU. Lyria's
+            API time dominates end-to-end and doesn't change with GPU.
+        </p>
+    </div>
+</section>
+
+<footer class="footer">
+    <div class="container">
+        <p>
+            <a href="https://github.com/giladabramson/adaptive-music-slicer">
+                Source on GitHub →
+            </a>
+        </p>
+        <p class="footnote">
+            Built with PyTorch, audio-separator, librosa, pydub and Web Audio.
+            Demos use clips generated with Google Lyria preview and Meta MusicGen.
+        </p>
+    </div>
+</footer>
+
+<script src="js/adaptive-player.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

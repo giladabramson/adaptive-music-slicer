@@ -1,0 +1,519 @@
+/* --------------------------------------------------------------------
+   Adaptive Music Engine landing page
+   Dark, dev-themed, no framework. ~200 lines.
+   -------------------------------------------------------------------- */
+
+:root {
+    --bg:        #0c0e12;
+    --bg-2:      #14171d;
+    --bg-3:      #1c2029;
+    --fg:        #e5e7eb;
+    --fg-dim:    #9aa3b2;
+    --fg-faint:  #5d6571;
+    --accent:    #6ee7b7;
+    --accent-2:  #38bdf8;
+    --warn:      #fbbf24;
+    --err:       #f87171;
+    --line:      #232833;
+    --mono:      ui-monospace, "JetBrains Mono", "Fira Code", "SF Mono",
+                 Menlo, Consolas, monospace;
+    --sans:      ui-sans-serif, "Inter", system-ui, -apple-system,
+                 "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent-2); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.container {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* -- hero ----------------------------------------------------------- */
+.hero {
+    padding: 96px 0 56px;
+    border-bottom: 1px solid var(--line);
+}
+.kicker {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0 0 14px;
+}
+.hero h1 {
+    font-size: clamp(28px, 4.6vw, 44px);
+    line-height: 1.15;
+    margin: 0 0 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+.lede {
+    font-size: 18px;
+    color: var(--fg-dim);
+    max-width: 720px;
+    margin: 0 0 18px;
+}
+.lede strong { color: var(--fg); font-weight: 600; }
+.meta {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--fg-faint);
+    margin: 0;
+}
+
+/* -- player --------------------------------------------------------- */
+.player-section {
+    padding: 56px 0;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+}
+.player {
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 28px 22px;
+}
+.player-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 12px 18px;
+    margin-bottom: 22px;
+}
+.player-header label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fg-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+#song-picker {
+    background: var(--bg-2);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    min-width: 280px;
+}
+.song-meta {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fg-dim);
+}
+
+.transport {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+button.play {
+    background: var(--accent);
+    color: #062721;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+button.play:hover { background: #5dd3a3; }
+button.play.playing { background: var(--accent-2); color: #06212c; }
+.status {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fg-dim);
+}
+.status[data-kind="error"] { color: var(--err); }
+
+.presets {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+.presets-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fg-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 4px;
+}
+.preset {
+    background: transparent;
+    color: var(--fg-dim);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.preset:hover { border-color: var(--accent); color: var(--fg); }
+.preset.active {
+    background: var(--accent);
+    color: #062721;
+    border-color: var(--accent);
+}
+
+.stems {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+.stem {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: grid;
+    grid-template-columns: 84px 1fr 36px 36px 90px;
+    align-items: center;
+    gap: 12px;
+}
+.stem-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.stem.muted .stem-name { color: var(--fg-faint); }
+.stem.soloed .stem-name { color: var(--accent); }
+
+.stem-vol {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--bg);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+.stem-vol::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg-3);
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+.stem-vol::-webkit-slider-thumb:hover { transform: scale(1.15); }
+.stem-vol::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg-3);
+    cursor: pointer;
+}
+.stem.muted .stem-vol::-webkit-slider-thumb,
+.stem.muted .stem-vol::-moz-range-thumb { background: var(--fg-faint); }
+
+.stem-toggle {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--fg-faint);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    justify-self: center;
+}
+.stem-toggle:hover {
+    border-color: var(--fg-dim);
+    color: var(--fg-dim);
+}
+.stem-mute[aria-pressed="true"] {
+    background: #b34646;
+    border-color: #b34646;
+    color: #fff5f5;
+}
+.stem-solo[aria-pressed="true"] {
+    background: var(--accent-2);
+    border-color: var(--accent-2);
+    color: #06212c;
+}
+
+.meter {
+    --level: 0%;
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+}
+.meter::after {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: var(--level);
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width 0.06s linear;
+}
+.stem.muted .meter::after { background: var(--fg-faint); }
+
+.fade-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+.fade-row label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fg-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+#fade-range { flex: 1; max-width: 280px; accent-color: var(--accent); }
+.fade-value {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fg-dim);
+    min-width: 36px;
+}
+
+.player-hint {
+    font-size: 13px;
+    color: var(--fg-faint);
+    margin: 18px 0 0;
+    line-height: 1.55;
+}
+kbd {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-dim);
+}
+
+/* -- interest / email capture --------------------------------------- */
+.interest {
+    padding: 56px 0;
+    border-top: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+}
+.interest h2 {
+    font-size: 26px;
+    margin: 0 0 18px;
+    letter-spacing: -0.01em;
+}
+.interest-lede {
+    color: var(--fg-dim);
+    max-width: 700px;
+    margin: 0 0 14px;
+    font-size: 16px;
+}
+.interest-lede code {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent-2);
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 6px;
+}
+.interest-lede .dim { color: var(--fg-faint); }
+
+#interest-form {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+    flex-wrap: wrap;
+    max-width: 520px;
+}
+#interest-form input[type="email"] {
+    flex: 1;
+    min-width: 220px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--fg);
+    padding: 11px 14px;
+    font-family: var(--sans);
+    font-size: 14px;
+}
+#interest-form input[type="email"]:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+#interest-form button {
+    background: var(--accent);
+    color: #062721;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 22px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+#interest-form button:hover { background: #5dd3a3; }
+
+.interest-status {
+    font-family: var(--mono);
+    font-size: 13px;
+    margin: 12px 0 0;
+    color: var(--fg-dim);
+}
+.interest-status[data-kind="ok"]    { color: var(--accent); }
+.interest-status[data-kind="error"] { color: var(--err); }
+
+.interest-footnote {
+    margin-top: 22px;
+    font-size: 13px;
+    color: var(--fg-faint);
+}
+
+/* -- how it works --------------------------------------------------- */
+.how {
+    padding: 56px 0;
+    border-top: 1px solid var(--line);
+}
+.how h2 {
+    font-size: 26px;
+    margin: 0 0 28px;
+    letter-spacing: -0.01em;
+}
+.pipeline {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+}
+.step {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 22px 22px 18px;
+    position: relative;
+}
+.step-num {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    font-family: var(--mono);
+    font-size: 56px;
+    line-height: 1;
+    color: var(--bg-3);
+    font-weight: 700;
+    pointer-events: none;
+}
+.step h3 {
+    font-size: 17px;
+    margin: 0 0 8px;
+    color: var(--accent);
+    font-family: var(--mono);
+    letter-spacing: -0.005em;
+}
+.step p {
+    color: var(--fg-dim);
+    margin: 0 0 12px;
+    max-width: 700px;
+}
+.step p strong { color: var(--fg); font-weight: 600; }
+.step code {
+    display: inline-block;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent-2);
+}
+
+/* -- numbers -------------------------------------------------------- */
+.numbers {
+    padding: 56px 0;
+    border-top: 1px solid var(--line);
+}
+.numbers h2 {
+    font-size: 26px;
+    margin: 0 0 24px;
+    letter-spacing: -0.01em;
+}
+.numbers table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 13px;
+}
+.numbers th, .numbers td {
+    text-align: right;
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--line);
+}
+.numbers th:first-child, .numbers td:first-child {
+    text-align: left;
+    color: var(--fg-dim);
+}
+.numbers th { color: var(--accent); font-weight: 600; }
+.footnote {
+    font-size: 12px;
+    color: var(--fg-faint);
+    margin-top: 18px;
+    line-height: 1.6;
+}
+
+/* -- footer --------------------------------------------------------- */
+.footer {
+    padding: 36px 0 56px;
+    border-top: 1px solid var(--line);
+}
+.footer p { margin: 0 0 8px; }
+.footer .footnote { margin-top: 8px; }
+
+/* -- small screens -------------------------------------------------- */
+@media (max-width: 640px) {
+    .hero { padding: 64px 0 40px; }
+    .player { padding: 22px 18px; }
+    .stem {
+        grid-template-columns: 64px 1fr 32px 32px;
+        grid-template-areas:
+            "name vol mute solo"
+            "meter meter meter meter";
+        gap: 8px 10px;
+    }
+    .stem-name { grid-area: name; }
+    .stem-vol { grid-area: vol; }
+    .stem-mute { grid-area: mute; }
+    .stem-solo { grid-area: solo; }
+    .meter { grid-area: meter; margin-top: 4px; }
+    .song-meta { margin-left: 0; flex-basis: 100%; }
+    .step-num { font-size: 38px; }
+}

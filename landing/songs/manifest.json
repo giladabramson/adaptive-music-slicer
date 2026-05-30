@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "featured": "ominous_test_lyria",
+  "songs": [
+    {
+      "name": "ominous_test_lyria",
+      "track_name": "compose_a_1_minute_sog_as",
+      "bpm": 123.0469,
+      "loop_duration_ms": 15604,
+      "bars": 8,
+      "stems": [
+        "drums.mp3",
+        "bass.mp3",
+        "other.mp3",
+        "vocals.mp3"
+      ],
+      "total_bytes": 1003276
+    },
+    {
+      "name": "synthwave",
+      "track_name": "80s_synthwave_full_band_punchy_gated",
+      "bpm": 114.8438,
+      "loop_duration_ms": 16718,
+      "bars": 8,
+      "stems": [
+        "drums.mp3",
+        "bass.mp3",
+        "other.mp3",
+        "vocals.mp3"
+      ],
+      "total_bytes": 1073492
+    },
+    {
+      "name": "reggae",
+      "track_name": "roots_reggae_full_band_one_drop",
+      "bpm": 161.499,
+      "loop_duration_ms": 11889,
+      "bars": 8,
+      "stems": [
+        "drums.mp3",
+        "bass.mp3",
+        "other.mp3",
+        "vocals.mp3"
+      ],
+      "total_bytes": 765876
+    },
+    {
+      "name": "vocals",
+      "track_name": "funky_r_b_groove_prominent_slap",
+      "bpm": 99.384,
+      "loop_duration_ms": 19319,
+      "bars": 8,
+      "stems": [
+        "drums.mp3",
+        "bass.mp3",
+        "other.mp3",
+        "vocals.mp3"
+      ],
+      "total_bytes": 1240676
+    },
+    {
+      "name": "poprock",
+      "track_name": "anthemic_pop_rock_full_band_energetic",
+      "bpm": 139.6748,
+      "loop_duration_ms": 13746,
+      "bars": 8,
+      "stems": [
+        "drums.mp3",
+        "bass.mp3",
+        "other.mp3",
+        "vocals.mp3"
+      ],
+      "total_bytes": 884576
+    },
+    {
+      "name": "house",
+      "track_name": "disco_house_full_band_not_minimal",
+      "bpm": 123.0469,
+      "loop_duration_ms": 15604,
+      "bars": 8,
+      "stems": [
+        "drums.mp3",
+        "bass.mp3",
+        "other.mp3",
+        "vocals.mp3"
+      ],
+      "total_bytes": 1003276
+    },
+    {
+      "name": "hiphop",
+      "track_name": "jazzy_boom_bap_hip_hop_full",
+      "bpm": 92.2852,
+      "loop_duration_ms": 20805,
+      "bars": 8,
+      "stems": [
+        "drums.mp3",
+        "bass.mp3",
+        "other.mp3",
+        "vocals.mp3"
+      ],
+      "total_bytes": 1335972
+    },
+    {
+      "name": "game",
+      "track_name": "looping_background_music_for_a_fantasy",
+      "bpm": 99.384,
+      "loop_duration_ms": 19319,
+      "bars": 8,
+      "stems": [
+        "drums.mp3",
+        "bass.mp3",
+        "other.mp3",
+        "vocals.mp3"
+      ],
+      "total_bytes": 1240676
+    },
+    {
+      "name": "ominous_test",
+      "track_name": "compose_a_1_minute_sog_as",
+      "bpm": 138.8889,
+      "loop_duration_ms": 13824,
+      "bars": 8,
+      "stems": [
+        "drums.mp3",
+        "bass.mp3",
+        "other.mp3",
+        "vocals.mp3"
+      ],
+      "total_bytes": 889592
+    }
+  ]
+}
