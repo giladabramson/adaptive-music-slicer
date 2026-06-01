@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StemForge — AI music with the stems you control</title>
+    <meta name="description" content="StemForge turns a text prompt into four phase-locked stems — drums, bass, melody, vocals — separated and ready to mix. For game devs scoring scenes, DJs cueing stems live, producers grabbing clean components, and anyone who needs more than a finished MP3.">
+
+    <link rel="icon" type="image/svg+xml" href="assets/brand-favicon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="assets/favicon-96.png">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+
+    <meta property="og:title" content="StemForge — AI music with the stems you control">
+    <meta property="og:description" content="One prompt becomes four phase-locked stems you can mix live. For game devs, DJs, producers, sound designers. Open source, MIT, runs locally.">
+    <meta property="og:image" content="assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="StemForge — AI music with the stems you control">
+    <meta name="twitter:description" content="One prompt becomes four phase-locked stems. For game devs, DJs, producers, sound designers.">
+    <meta name="twitter:image" content="assets/og-image.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+
+    <link rel="stylesheet" href="styles.css">
+    <!-- Vercel Analytics: no-op locally, lights up automatically when deployed to Vercel. -->
+    <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+
+<div class="sticky-bar" id="sticky-bar" data-visible="false">
+    <div class="container sticky-content">
+        <a href="#top" class="sticky-logo" aria-label="StemForge — back to top">
+            <img src="assets/brand-horizontal.svg" alt="StemForge" class="sticky-logo-img">
+        </a>
+        <nav class="sticky-nav">
+            <a href="#player">Demo</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#how">How</a>
+            <a href="https://github.com/giladabramson/adaptive-music-slicer">GitHub</a>
+        </nav>
+        <a href="#interest" class="btn btn-primary btn-sm">Get notified</a>
+    </div>
+</div>
+
+<header class="hero" id="top">
+    <div class="hero-waves" aria-hidden="true">
+        <svg viewBox="0 0 1600 500" preserveAspectRatio="none">
+            <defs>
+                <linearGradient id="wg1" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%"  stop-color="#a78bfa" stop-opacity="0"/>
+                    <stop offset="45%" stop-color="#a78bfa" stop-opacity="0.55"/>
+                    <stop offset="100%" stop-color="#67e8f9" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="wg2" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%"  stop-color="#67e8f9" stop-opacity="0"/>
+                    <stop offset="55%" stop-color="#67e8f9" stop-opacity="0.42"/>
+                    <stop offset="100%" stop-color="#f5b85a" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="wg3" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%"  stop-color="#a78bfa" stop-opacity="0"/>
+                    <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.32"/>
+                    <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+                </linearGradient>
+            </defs>
+            <path class="wave wave-1" stroke="url(#wg1)" fill="none" stroke-width="1.4"
+                  d="M-200 280 Q 200 200 600 280 T 1400 280 T 2200 280"/>
+            <path class="wave wave-2" stroke="url(#wg2)" fill="none" stroke-width="1.2"
+                  d="M-200 340 Q 250 260 700 340 T 1500 340 T 2300 340"/>
+            <path class="wave wave-3" stroke="url(#wg3)" fill="none" stroke-width="1"
+                  d="M-200 220 Q 300 320 750 220 T 1550 220 T 2350 220"/>
+        </svg>
+    </div>
+    <div class="container">
+        <p class="kicker">
+            <img src="assets/brand-horizontal.svg" alt="StemForge" class="kicker-logo">
+        </p>
+        <h1>
+            AI music —<br>
+            with the <span class="accent">stems you control</span>.
+        </h1>
+        <p class="lede">
+            One prompt becomes four phase-locked stems — drums, bass, melody,
+            vocals — separated by a <strong>BS-Roformer + Demucs
+            htdemucs_ft</strong> hybrid and ready to mix live. For
+            <strong>game devs</strong> scoring adaptive scenes,
+            <strong>DJs</strong> cueing stems on the fly,
+            <strong>producers</strong> grabbing a clean bass line, and
+            <strong>sound designers</strong> isolating instruments. Five
+            generation backends — Lyria, MusicGen, Stable Audio, AudioLDM,
+            Beatoven — swap with a flag.
+        </p>
+        <div class="hero-cta">
+            <a href="#player" class="btn btn-primary">Try the demo ↓</a>
+            <a href="https://github.com/giladabramson/adaptive-music-slicer"
+               class="btn btn-ghost">View on GitHub →</a>
+        </div>
+        <p class="meta">
+            Open source · MIT · <span>~30 s per song on a laptop GPU</span> ·
+            <span>runs locally</span>
+        </p>
+    </div>
+</header>
+
+<section class="quickstart" data-reveal="up">
+    <div class="container">
+        <p class="section-kicker">One command</p>
+        <h2>From a prompt to four phase-locked stems</h2>
+        <div class="terminal">
+            <div class="terminal-bar">
+                <span class="term-dot term-dot-red"></span>
+                <span class="term-dot term-dot-yellow"></span>
+                <span class="term-dot term-dot-green"></span>
+                <span class="terminal-title">~ / my-game</span>
+            </div>
+<pre class="terminal-body"><code><span class="t-prompt">$</span> <span class="t-cmd">python -m adaptive_music_engine</span> \
+    <span class="t-arg">--generate</span> <span class="t-str">"ominous dark game music, slow tempo"</span> \
+    <span class="t-arg">--gen-backend</span> <span class="t-val">lyria</span> \
+    <span class="t-arg">-o</span> <span class="t-path">./songs/ominous</span>
+
+<span class="t-muted">Step 0/4 — Generating with Lyria…</span>             <span class="t-time">~14 s</span>
+<span class="t-muted">Step 1/4 — BS-Roformer + htdemucs_ft hybrid…</span>   <span class="t-time">~30 s</span>
+<span class="t-muted">Step 2/4 — Librosa BPM + beat grid…</span>            <span class="t-time">~2 s</span>
+<span class="t-muted">Step 3/4 — Slicing 4 stems to loop window…</span>     <span class="t-time">&lt;1 s</span>
+<span class="t-muted">Step 4/4 — Writing config.json…</span>                <span class="t-time">&lt;1 s</span>
+
+<span class="t-ok">  ✓ Done — 4 stems + config.json at ./songs/ominous</span></code></pre>
+        </div>
+    </div>
+</section>
+
+<section class="trust" data-reveal="zoom">
+    <div class="container">
+        <p class="trust-label">Standing on</p>
+        <div class="trust-logos">
+            <span>PyTorch</span>
+            <span class="trust-dot">·</span>
+            <span>Hugging Face</span>
+            <span class="trust-dot">·</span>
+            <span>BS-Roformer</span>
+            <span class="trust-dot">·</span>
+            <span>Demucs</span>
+            <span class="trust-dot">·</span>
+            <span>Google Lyria</span>
+            <span class="trust-dot">·</span>
+            <span>Librosa</span>
+            <span class="trust-dot">·</span>
+            <span>Web Audio</span>
+        </div>
+    </div>
+</section>
+
+<section class="player-section" id="player" data-reveal="up">
+    <div class="container">
+        <div class="player">
+            <div class="player-header">
+                <label for="song-picker">Demo</label>
+                <select id="song-picker"></select>
+                <div id="song-meta" class="song-meta"></div>
+            </div>
+
+            <div class="viz-wrap" id="viz-wrap">
+                <canvas id="viz" width="800" height="96"></canvas>
+                <div class="viz-hint">Press play</div>
+            </div>
+
+            <div class="seekbar-row">
+                <span class="time" id="time-current">0:00</span>
+                <div class="seekbar" id="seekbar" tabindex="0"
+                     role="slider" aria-label="Seek within loop"
+                     aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div class="seekbar-track">
+                        <div class="seekbar-progress" id="seekbar-progress"></div>
+                        <div class="seekbar-thumb" id="seekbar-thumb"></div>
+                    </div>
+                </div>
+                <span class="time" id="time-total">0:00</span>
+            </div>
+
+            <div class="transport">
+                <button id="play-btn" class="play" aria-label="Play / pause">
+                    <svg class="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    <svg class="icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 5h4v14H6zM14 5h4v14h-4z"/>
+                    </svg>
+                </button>
+                <div id="status" class="status">Press play to start</div>
+            </div>
+
+            <div class="presets" role="group" aria-label="Tension preset">
+                <span class="presets-label">Tension</span>
+                <button data-preset="Low" class="preset">Low</button>
+                <button data-preset="Medium" class="preset active">Medium</button>
+                <button data-preset="High" class="preset">High</button>
+            </div>
+
+            <div class="stems" id="stems-list">
+                <div class="stem" data-stem="drums">
+                    <span class="stem-name">Drums</span>
+                    <input type="range" class="stem-vol" data-stem="drums"
+                           min="0" max="100" step="1" value="100"
+                           aria-label="Drums volume">
+                    <button class="stem-toggle stem-mute" data-stem="drums"
+                            type="button" aria-pressed="false" title="Mute drums">M</button>
+                    <button class="stem-toggle stem-solo" data-stem="drums"
+                            type="button" aria-pressed="false" title="Solo drums">S</button>
+                    <div class="meter" id="meter-drums"></div>
+                </div>
+                <div class="stem" data-stem="bass">
+                    <span class="stem-name">Bass</span>
+                    <input type="range" class="stem-vol" data-stem="bass"
+                           min="0" max="100" step="1" value="100"
+                           aria-label="Bass volume">
+                    <button class="stem-toggle stem-mute" data-stem="bass"
+                            type="button" aria-pressed="false" title="Mute bass">M</button>
+                    <button class="stem-toggle stem-solo" data-stem="bass"
+                            type="button" aria-pressed="false" title="Solo bass">S</button>
+                    <div class="meter" id="meter-bass"></div>
+                </div>
+                <div class="stem" data-stem="other">
+                    <span class="stem-name">Melody</span>
+                    <input type="range" class="stem-vol" data-stem="other"
+                           min="0" max="100" step="1" value="100"
+                           aria-label="Melody volume">
+                    <button class="stem-toggle stem-mute" data-stem="other"
+                            type="button" aria-pressed="false" title="Mute melody">M</button>
+                    <button class="stem-toggle stem-solo" data-stem="other"
+                            type="button" aria-pressed="false" title="Solo melody">S</button>
+                    <div class="meter" id="meter-other"></div>
+                </div>
+                <div class="stem" data-stem="vocals">
+                    <span class="stem-name">Vocals</span>
+                    <input type="range" class="stem-vol" data-stem="vocals"
+                           min="0" max="100" step="1" value="100"
+                           aria-label="Vocals volume">
+                    <button class="stem-toggle stem-mute" data-stem="vocals"
+                            type="button" aria-pressed="false" title="Mute vocals">M</button>
+                    <button class="stem-toggle stem-solo" data-stem="vocals"
+                            type="button" aria-pressed="false" title="Solo vocals">S</button>
+                    <div class="meter" id="meter-vocals"></div>
+                </div>
+            </div>
+
+            <div class="fade-row">
+                <label for="fade-range">Stem fade</label>
+                <input type="range" id="fade-range" min="0.3" max="3.0" step="0.1" value="1.5">
+                <span id="fade-value" class="fade-value">1.5s</span>
+            </div>
+
+            <p class="player-hint">
+                Cycle <kbd>Low</kbd> → <kbd>Medium</kbd> → <kbd>High</kbd> mid-loop
+                and watch the stems fade in. Or grab any volume slider, mute a
+                stem, or solo one to A/B the mix — manual moves quietly take
+                over from the preset.
+            </p>
+        </div>
+    </div>
+</section>
+
+<section class="samples" data-reveal="left">
+    <div class="container">
+        <p class="section-kicker">Demos</p>
+        <h2>Six tracks · click to play</h2>
+        <div class="samples-grid">
+            <button class="sample-card" data-song="ominous_test_lyria" type="button">
+                <div class="sample-head">
+                    <span class="sample-play" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </span>
+                    <div class="sample-meta-block">
+                        <div class="sample-title">Ominous · dark</div>
+                        <div class="sample-meta">123 BPM · Lyria</div>
+                    </div>
+                </div>
+                <div class="sample-prompt">"compose a 1-minute background score for a game. ominous, dark, uncomfortable"</div>
+                <div class="sample-bars" aria-hidden="true">
+                    <span style="height:38%"></span><span style="height:62%"></span>
+                    <span style="height:48%"></span><span style="height:74%"></span>
+                    <span style="height:55%"></span><span style="height:42%"></span>
+                    <span style="height:68%"></span><span style="height:50%"></span>
+                    <span style="height:36%"></span><span style="height:58%"></span>
+                </div>
+            </button>
+
+            <button class="sample-card" data-song="synthwave" type="button">
+                <div class="sample-head">
+                    <span class="sample-play" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </span>
+                    <div class="sample-meta-block">
+                        <div class="sample-title">Synthwave</div>
+                        <div class="sample-meta">115 BPM · Lyria</div>
+                    </div>
+                </div>
+                <div class="sample-prompt">"energetic synthwave, punchy kick, deep bassline, 120 bpm"</div>
+                <div class="sample-bars" aria-hidden="true">
+                    <span style="height:42%"></span><span style="height:78%"></span>
+                    <span style="height:56%"></span><span style="height:65%"></span>
+                    <span style="height:48%"></span><span style="height:70%"></span>
+                    <span style="height:60%"></span><span style="height:82%"></span>
+                    <span style="height:50%"></span><span style="height:65%"></span>
+                </div>
+            </button>
+
+            <button class="sample-card" data-song="reggae" type="button">
+                <div class="sample-head">
+                    <span class="sample-play" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </span>
+                    <div class="sample-meta-block">
+                        <div class="sample-title">Reggae · one drop</div>
+                        <div class="sample-meta">161 BPM · Lyria</div>
+                    </div>
+                </div>
+                <div class="sample-prompt">"roots reggae one drop, full band, organic feel"</div>
+                <div class="sample-bars" aria-hidden="true">
+                    <span style="height:55%"></span><span style="height:48%"></span>
+                    <span style="height:72%"></span><span style="height:42%"></span>
+                    <span style="height:60%"></span><span style="height:50%"></span>
+                    <span style="height:66%"></span><span style="height:45%"></span>
+                    <span style="height:58%"></span><span style="height:52%"></span>
+                </div>
+            </button>
+
+            <button class="sample-card" data-song="poprock" type="button">
+                <div class="sample-head">
+                    <span class="sample-play" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </span>
+                    <div class="sample-meta-block">
+                        <div class="sample-title">Pop-rock</div>
+                        <div class="sample-meta">140 BPM · Lyria</div>
+                    </div>
+                </div>
+                <div class="sample-prompt">"energetic pop rock with driving guitars and tight drums"</div>
+                <div class="sample-bars" aria-hidden="true">
+                    <span style="height:65%"></span><span style="height:55%"></span>
+                    <span style="height:78%"></span><span style="height:62%"></span>
+                    <span style="height:72%"></span><span style="height:58%"></span>
+                    <span style="height:80%"></span><span style="height:65%"></span>
+                    <span style="height:70%"></span><span style="height:60%"></span>
+                </div>
+            </button>
+
+            <button class="sample-card" data-song="house" type="button">
+                <div class="sample-head">
+                    <span class="sample-play" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </span>
+                    <div class="sample-meta-block">
+                        <div class="sample-title">House · deep</div>
+                        <div class="sample-meta">123 BPM · Lyria</div>
+                    </div>
+                </div>
+                <div class="sample-prompt">"deep house with hypnotic bassline and atmospheric synths"</div>
+                <div class="sample-bars" aria-hidden="true">
+                    <span style="height:50%"></span><span style="height:72%"></span>
+                    <span style="height:55%"></span><span style="height:68%"></span>
+                    <span style="height:62%"></span><span style="height:75%"></span>
+                    <span style="height:58%"></span><span style="height:70%"></span>
+                    <span style="height:60%"></span><span style="height:68%"></span>
+                </div>
+            </button>
+
+            <button class="sample-card" data-song="vocals" type="button">
+                <div class="sample-head">
+                    <span class="sample-play" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </span>
+                    <div class="sample-meta-block">
+                        <div class="sample-title">Indie · vocals</div>
+                        <div class="sample-meta">99 BPM · Lyria</div>
+                    </div>
+                </div>
+                <div class="sample-prompt">"indie pop ballad with female vocals and acoustic guitar"</div>
+                <div class="sample-bars" aria-hidden="true">
+                    <span style="height:35%"></span><span style="height:52%"></span>
+                    <span style="height:45%"></span><span style="height:60%"></span>
+                    <span style="height:48%"></span><span style="height:55%"></span>
+                    <span style="height:42%"></span><span style="height:58%"></span>
+                    <span style="height:50%"></span><span style="height:46%"></span>
+                </div>
+            </button>
+        </div>
+    </div>
+</section>
+
+<section class="features" data-reveal="left">
+    <div class="container">
+        <p class="section-kicker">What's in the box</p>
+        <h2>Built for everyone who needs more than a finished MP3</h2>
+        <div class="bento">
+            <div class="bento-card bento-span-2">
+                <div class="bento-eyebrow">Generation</div>
+                <h3>Five backends, one pipeline</h3>
+                <p>
+                    Lyria for quality. MusicGen for offline. Stable Audio for
+                    long-form. AudioLDM for ambient. Beatoven for
+                    purpose-built game beds. Swap with a flag.
+                </p>
+                <div class="backend-chips">
+                    <span class="chip"><span class="chip-dot" style="background:#a78bfa"></span>Lyria</span>
+                    <span class="chip"><span class="chip-dot" style="background:#67e8f9"></span>MusicGen</span>
+                    <span class="chip"><span class="chip-dot" style="background:#f5b85a"></span>Stable Audio</span>
+                    <span class="chip"><span class="chip-dot" style="background:#f87171"></span>AudioLDM</span>
+                    <span class="chip"><span class="chip-dot" style="background:#6ee7b7"></span>Beatoven</span>
+                </div>
+            </div>
+
+            <div class="bento-card bento-span-2">
+                <div class="bento-eyebrow">Separation</div>
+                <h3>Best-in-class hybrid</h3>
+                <div class="bento-chips">
+                    <span class="bento-chip">12.1 vocals SDR</span>
+                    <span class="bento-chip">4× ensemble</span>
+                    <span class="bento-chip">~30 s on GPU</span>
+                </div>
+                <p>
+                    BS-Roformer extracts vocals at SDR ≈ 12.1, then Demucs
+                    htdemucs_ft — a 4-model fine-tuned ensemble — splits the
+                    rest. Ear-tested across seven genres.
+                </p>
+                <div class="sdr-badge">
+                    <div>
+                        <div class="sdr-value">12.1</div>
+                        <div class="sdr-cap">vocals SDR (dB)</div>
+                    </div>
+                    <div class="sdr-divider"></div>
+                    <div>
+                        <div class="sdr-value">4×</div>
+                        <div class="sdr-cap">Demucs ensemble</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bento-card bento-span-2">
+                <div class="bento-eyebrow">Sync</div>
+                <h3>Phase-locked stems</h3>
+                <div class="bento-chips">
+                    <span class="bento-chip">&lt;1 ms seam</span>
+                    <span class="bento-chip">int-ms quantised</span>
+                </div>
+                <p>
+                    All four stems cut from the same loop window. Sub-millisecond
+                    seam error. They never click.
+                </p>
+                <div class="stem-bars">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+
+            <div class="bento-card bento-span-2">
+                <div class="bento-eyebrow">Runtime</div>
+                <h3>Live stem mixing</h3>
+                <div class="bento-chips">
+                    <span class="bento-chip">250 LOC</span>
+                    <span class="bento-chip">60 fps refresh</span>
+                    <span class="bento-chip">Web Audio</span>
+                </div>
+                <p>
+                    Whatever drives your mix — game tension, a DJ controller,
+                    a producer's mute toggle — moves stem gain on linear
+                    ramps. No fade-cuts, no re-triggers. Drop the 250-line
+                    runtime into any engine or app.
+                </p>
+                <div class="preset-mini">
+                    <span class="preset-chip">Low</span>
+                    <span class="preset-chip active">Medium</span>
+                    <span class="preset-chip">High</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="pricing" id="pricing" data-reveal="left">
+    <div class="container">
+        <p class="section-kicker">Pricing</p>
+        <h2>Three ways to use it</h2>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <div class="pricing-badge available">Available now</div>
+                <div class="pricing-name">Self-host</div>
+                <div class="pricing-price"><span class="price">Free</span><span class="period">forever</span></div>
+                <div class="pricing-tagline">Run on your own GPU. <strong>Yours to ship in anything.</strong></div>
+                <ul class="pricing-features">
+                    <li>All 5 generation backends</li>
+                    <li>Hybrid separation + runtime player</li>
+                    <li>MIT-licensed source</li>
+                    <li>No usage caps</li>
+                    <li>You manage infra + API keys</li>
+                </ul>
+                <a href="https://github.com/giladabramson/adaptive-music-slicer" class="pricing-cta ghost">Get the source →</a>
+            </div>
+
+            <div class="pricing-card featured">
+                <div class="pricing-badge">Coming soon</div>
+                <div class="pricing-name">Cloud · Indie</div>
+                <div class="pricing-price"><span class="price">$19</span><span class="period">/ month</span></div>
+                <div class="pricing-tagline">Hosted API, no GPU required.</div>
+                <ul class="pricing-features">
+                    <li>50 generations / month</li>
+                    <li>All 5 generation backends</li>
+                    <li>Cloud GPU (T4) · ~30 s per track</li>
+                    <li>Track history + version diffs</li>
+                    <li>Commercial use included</li>
+                </ul>
+                <a href="#interest" class="pricing-cta primary">Get notified →</a>
+            </div>
+
+            <div class="pricing-card">
+                <div class="pricing-badge">Coming soon</div>
+                <div class="pricing-name">Cloud · Studio</div>
+                <div class="pricing-price"><span class="price">Custom</span></div>
+                <div class="pricing-tagline">For studios, labels, and platforms at volume.</div>
+                <ul class="pricing-features">
+                    <li>Unlimited generations</li>
+                    <li>Priority GPU queue (A10G)</li>
+                    <li>Curated prompt library + presets</li>
+                    <li>Unity / Unreal SDK integration</li>
+                    <li>SLA + dedicated support</li>
+                </ul>
+                <a href="#interest" class="pricing-cta ghost">Talk to us →</a>
+            </div>
+        </div>
+        <p class="pricing-footnote">
+            All hosted tiers ship the same engine you see on this page —
+            just with the GPU, queue, and storage we run for you.
+            <a href="STRATEGY.md">Open-core strategy →</a>
+        </p>
+    </div>
+</section>
+
+<section class="interest" id="interest" data-reveal="left">
+    <div class="container">
+        <h2>Would you actually use this?</h2>
+        <p class="interest-lede">
+            I'm thinking about turning the engine into a hosted API — drop in a
+            prompt, get back four phase-locked stems plus a <code>config.json</code>
+            ready for your game. No GPU setup, no model wrangling, no Python.
+        </p>
+        <p class="interest-lede">
+            If that's something you'd use, drop your email and I'll ping you once
+            there's a real version to try. <span class="dim">No spam, no sales calls
+            — just a one-time "it's ready" email.</span>
+        </p>
+        <!--
+          Setup: sign up at https://formspree.io (free, 50 submissions/mo),
+          create a form, replace the "YOUR_FORM_ID" placeholder below with
+          the ID from your form's endpoint. Until then, submits go nowhere.
+        -->
+        <form id="interest-form"
+              action="https://formspree.io/f/YOUR_FORM_ID"
+              method="POST">
+            <input type="email"
+                   name="email"
+                   required
+                   placeholder="you@studio.com"
+                   autocomplete="email">
+            <input type="hidden" name="_subject" value="StemForge — interested">
+            <button type="submit">Notify me</button>
+        </form>
+        <p id="interest-status" class="interest-status" hidden></p>
+        <p class="interest-footnote">
+            Or just <a href="https://github.com/giladabramson/adaptive-music-slicer">open
+            an issue on GitHub</a> with what you'd want it to do.
+        </p>
+    </div>
+</section>
+
+<section class="how" id="how" data-reveal="left">
+    <div class="container">
+        <p class="section-kicker">Pipeline</p>
+        <h2>How it works</h2>
+        <div class="pipeline">
+            <div class="step">
+                <span class="step-num">0</span>
+                <h3>Generate</h3>
+                <p>
+                    Your prompt hits a text-to-music backend — Google Lyria by
+                    default for best quality. MusicGen, Stable Audio, AudioLDM
+                    and Beatoven are drop-in alternatives.
+                </p>
+                <code>--gen-backend lyria | musicgen | stable-audio | audioldm | beatoven</code>
+            </div>
+            <div class="step">
+                <span class="step-num">1</span>
+                <h3>Separate</h3>
+                <p>
+                    <strong>BS-Roformer-Viperx-1296</strong> extracts the vocals
+                    stem (SDR ≈ 12.1, transformer on mel-spectrograms).
+                    <strong>Demucs htdemucs_ft</strong> — a 4-model fine-tuned
+                    ensemble — splits the residual instrumental into
+                    drums / bass / other.
+                </p>
+                <code>BS-Roformer → htdemucs_ft → drums, bass, other, vocals</code>
+            </div>
+            <div class="step">
+                <span class="step-num">2</span>
+                <h3>Lock to a loop</h3>
+                <p>
+                    Librosa detects BPM and the first beat. The engine computes
+                    loop length from tempo (<code>bars × 4 × 60 / BPM</code>),
+                    never from two noisy beat detections — so loops are exact
+                    whole bars and don't drift.
+                </p>
+                <code>BPM × bars → integer-ms loop window</code>
+            </div>
+            <div class="step">
+                <span class="step-num">3</span>
+                <h3>Slice all four stems identically</h3>
+                <p>
+                    All four stems get cut with the same
+                    <code>loop_start_ms</code>/<code>loop_end_ms</code>,
+                    quantised to integer milliseconds exactly once.
+                    Phase-locked. Sub-millisecond seam error.
+                </p>
+            </div>
+            <div class="step">
+                <span class="step-num">4</span>
+                <h3>Play adaptively</h3>
+                <p>
+                    The runtime player drives one mix callback with a shared
+                    playhead. Whatever you wire to it — game state, a DJ
+                    knob, a UI toggle — fades stems on linear ramps. No
+                    crossfade gap, no audible re-trigger.
+                </p>
+                <code>any input → per-stem gain → realtime mix</code>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="numbers" data-reveal="left">
+    <div class="container">
+        <p class="section-kicker">Numbers</p>
+        <h2>Honest numbers</h2>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-value">~95<span class="stat-unit">s</span></div>
+                <div class="stat-label">End-to-end:<br>prompt → game-ready stems</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">$0.003</div>
+                <div class="stat-label">Per song on<br>a T4 cloud GPU</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">&lt;1<span class="stat-unit">ms</span></div>
+                <div class="stat-label">Loop-seam error<br>across all 4 stems</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">5</div>
+                <div class="stat-label">Text-to-music<br>generation backends</div>
+            </div>
+        </div>
+        <p class="footnote">
+            Local figures measured on a real run. Cloud figures extrapolated
+            from compute-per-FLOP ratios; the fixed Python/model-load floor
+            is ~15 s regardless of GPU. Lyria's API time dominates end-to-end
+            and doesn't change with GPU.
+        </p>
+    </div>
+</section>
+
+<section class="compare" data-reveal="left">
+    <div class="container">
+        <p class="section-kicker">How it compares</p>
+        <h2>Compared, honestly</h2>
+        <p class="compare-lede">
+            StemForge isn't a DAW, a Wwise replacement, or a Suno killer —
+            they solve different problems. Here's the straight picture
+            against the realistic alternatives, broken down by what each
+            approach is genuinely best at.
+        </p>
+        <div class="compare-matrix">
+            <div class="cm-scroll">
+                <table class="cm-table">
+                    <colgroup>
+                        <col class="cm-col-label">
+                        <col class="cm-col-us">
+                        <col>
+                        <col>
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th scope="col"></th>
+                            <th scope="col" class="cm-us">
+                                <span class="compare-tag">This</span>
+                                <span class="cm-name">StemForge</span>
+                            </th>
+                            <th scope="col">
+                                <span class="cm-name">Composer + Wwise/FMOD</span>
+                            </th>
+                            <th scope="col">
+                                <span class="cm-name">Composer + DIY runtime</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th scope="row">Time to first track</th>
+                            <td class="cm-us cm-win"><span class="cm-mark">★</span>~95 s</td>
+                            <td>Days to weeks</td>
+                            <td>Days to weeks</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Cost per track</th>
+                            <td class="cm-us cm-win"><span class="cm-mark">★</span>$0.003 · free local</td>
+                            <td>$500–5,000 + license</td>
+                            <td>$500–5,000 + eng</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Iteration (try a new mood)</th>
+                            <td class="cm-us cm-win"><span class="cm-mark">★</span>Re-roll in &lt;2 min</td>
+                            <td>Re-record &amp; re-edit</td>
+                            <td>Re-record &amp; re-edit</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Runtime stem control</th>
+                            <td class="cm-us">4 stems · presets</td>
+                            <td class="cm-win"><span class="cm-mark">★</span>Full Wwise event graph</td>
+                            <td>Whatever you build</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Engine integration</th>
+                            <td class="cm-us cm-win"><span class="cm-mark">★</span>WAV + JSON, any platform</td>
+                            <td>Wwise/FMOD SDK</td>
+                            <td>Custom</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">Audio quality ceiling</th>
+                            <td class="cm-us">Lyria-grade</td>
+                            <td class="cm-win"><span class="cm-mark">★</span>Composer-grade</td>
+                            <td class="cm-win"><span class="cm-mark">★</span>Composer-grade</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">License</th>
+                            <td class="cm-us cm-win"><span class="cm-mark">★</span>MIT, runs locally</td>
+                            <td>Free indie · paid commercial</td>
+                            <td>Yours</td>
+                        </tr>
+                        <tr class="cm-fit-row">
+                            <th scope="row">Best for</th>
+                            <td class="cm-us">Game devs · DJs · producers · sound design</td>
+                            <td>Shipping AAA · rich audio interactivity</td>
+                            <td>Bespoke engines · custom needs</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="cm-scroll-hint">← swipe to compare →</p>
+        </div>
+        <p class="footnote">
+            AME wins on speed, cost, iteration. Wwise wins on runtime richness.
+            Hand-composed wins on bespoke audio quality. For most indie
+            workflows AME is enough on its own; for AAA, use AME to generate
+            the stems your audio designer wires up with Wwise.
+        </p>
+    </div>
+</section>
+
+<section class="faq" data-reveal="left">
+    <div class="container">
+        <p class="section-kicker">Questions</p>
+        <h2>What you'll probably ask</h2>
+        <div class="faq-list">
+            <details class="faq-item">
+                <summary>
+                    Can I use this commercially?
+                    <span class="faq-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="faq-body">
+                    <p>
+                        Yes for the engine itself — it's MIT-licensed. Each
+                        generation backend has its own terms, though, and
+                        that's the part you need to read:
+                    </p>
+                    <ul>
+                        <li><strong>Lyria</strong> — Google's preview model.
+                        Read Google's preview terms before shipping commercial
+                        output; preview-tier outputs are often non-commercial.</li>
+                        <li><strong>MusicGen</strong> — Meta's research
+                        license. Check Meta's terms.</li>
+                        <li><strong>Stable Audio / AudioLDM / Beatoven</strong>
+                        — each has its own commercial tier. Pick the backend
+                        whose license fits your use case.</li>
+                    </ul>
+                    <p>
+                        The separation, slicing, and runtime player are fully
+                        MIT — no strings on those.
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>
+                    Do I need a GPU?
+                    <span class="faq-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="faq-body">
+                    <p>
+                        No, but a GPU makes iteration usable. On CPU the
+                        hybrid takes ~200 s/song. On a laptop GPU (RTX 3050)
+                        ~30 s. On a T4 cloud GPU ~16 s. For final builds, CPU
+                        is fine. For development with re-rolls, you'll want
+                        the GPU.
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>
+                    Does this replace my DAW, Wwise/FMOD, or DJ software?
+                    <span class="faq-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="faq-body">
+                    <p>
+                        Different jobs, complementary tools.
+                    </p>
+                    <ul>
+                        <li><strong>DAWs (Ableton, Logic, Pro Tools)</strong> —
+                        StemForge can feed clean stems into them; it doesn't
+                        replace the arrangement/effects/mastering work a DAW
+                        is built for.</li>
+                        <li><strong>Wwise / FMOD</strong> — game-audio
+                        middleware for triggering and mixing audio you
+                        already have. StemForge generates the audio. Feed
+                        the stems into Wwise, or use the included 250-line
+                        runtime player directly.</li>
+                        <li><strong>DJ software (Serato, rekordbox)</strong> —
+                        StemForge can be the generator stage; the stems
+                        load directly into stem-aware DJ software, or play
+                        through the runtime player for live remix.</li>
+                    </ul>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>
+                    Do my players need to install Python?
+                    <span class="faq-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="faq-body">
+                    <p>
+                        No. Python is only for the build-time generation +
+                        slicing step. The runtime is just four WAV files and
+                        a <code>config.json</code>. The reference player is a
+                        ~250-line Web Audio module for HTML5 games, and the
+                        same logic ports cleanly to any engine's audio API
+                        (Unity, Unreal, Godot, Bevy — they all expose
+                        per-source gain control).
+                    </p>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>
+                    Is the audio quality good enough to ship?
+                    <span class="faq-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="faq-body">
+                    <p>
+                        Honest answer: depends on the game.
+                    </p>
+                    <ul>
+                        <li><strong>Indie, web, mobile, prototypes</strong> —
+                        often surprisingly good, especially Lyria-generated.</li>
+                        <li><strong>Atmospheric / background beds</strong> —
+                        fine; this is where AI-generated music shines.</li>
+                        <li><strong>AAA with bespoke composer themes</strong>
+                        — no. Hire a composer.</li>
+                        <li><strong>Anything vocal-heavy</strong> —
+                        instrumentals are stronger; vocals are still the
+                        weakest link across all current models.</li>
+                    </ul>
+                </div>
+            </details>
+
+            <details class="faq-item">
+                <summary>
+                    What about copyright on the generated music?
+                    <span class="faq-icon" aria-hidden="true"></span>
+                </summary>
+                <div class="faq-body">
+                    <p>
+                        Each generation backend has its own copyright /
+                        ownership terms — read them before shipping. The
+                        engine's separation, slicing, and runtime code are MIT
+                        and make no claim on the audio you put through them.
+                    </p>
+                </div>
+            </details>
+        </div>
+    </div>
+</section>
+
+<section class="changelog" data-reveal="left">
+    <div class="container">
+        <p class="section-kicker">Shipping</p>
+        <h2>Active project · recent updates</h2>
+        <div class="changelog-list">
+            <div class="changelog-item">
+                <div class="changelog-date">May 30</div>
+                <div class="changelog-body">
+                    <div class="changelog-title">Five generation backends</div>
+                    <div class="changelog-desc">
+                        Beatoven joins Lyria, MusicGen, Stable Audio and
+                        AudioLDM. Swap with one flag.
+                    </div>
+                </div>
+            </div>
+            <div class="changelog-item">
+                <div class="changelog-date">May 28</div>
+                <div class="changelog-body">
+                    <div class="changelog-title">BS-Roformer + htdemucs_ft hybrid</div>
+                    <div class="changelog-desc">
+                        New default separator. Ear-tested across 7 genres,
+                        sounds better than plain Demucs across the board.
+                    </div>
+                </div>
+            </div>
+            <div class="changelog-item">
+                <div class="changelog-date">May 28</div>
+                <div class="changelog-body">
+                    <div class="changelog-title">Web Audio runtime player</div>
+                    <div class="changelog-desc">
+                        ~250-line drop-in module. Sample-accurate sync, mute /
+                        solo / per-stem volume, tension presets, seek.
+                    </div>
+                </div>
+            </div>
+            <div class="changelog-item">
+                <div class="changelog-date">May 27</div>
+                <div class="changelog-body">
+                    <div class="changelog-title">CUDA support · 3× speedup</div>
+                    <div class="changelog-desc">
+                        Dedicated <code>.venv-cuda</code>. Per-song separation
+                        drops from ~200 s on CPU to ~30 s on a laptop GPU.
+                    </div>
+                </div>
+            </div>
+            <div class="changelog-item">
+                <div class="changelog-date">May 17</div>
+                <div class="changelog-body">
+                    <div class="changelog-title">Initial pipeline + Lyria</div>
+                    <div class="changelog-desc">
+                        First version of the engine: generate → separate →
+                        analyse → slice → config.json.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="footer">
+    <div class="container">
+        <img src="assets/brand-horizontal.svg" alt="StemForge" class="footer-logo">
+        <p>
+            <a href="https://github.com/giladabramson/adaptive-music-slicer">
+                Source on GitHub →
+            </a>
+        </p>
+        <p class="footnote">
+            Built with PyTorch, audio-separator, librosa, pydub and Web Audio.
+            Demos use clips generated with Google Lyria preview and Meta MusicGen.
+        </p>
+    </div>
+</footer>
+
+<script src="js/adaptive-player.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

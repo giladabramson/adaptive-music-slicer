@@ -89,6 +89,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--gen-api-key", default=None,
         help="Lyria only: API key (else GOOGLE_API_KEY / GEMINI_API_KEY).",
     )
+    gen.add_argument(
+        "--no-stem-suffix", action="store_true",
+        help="Don't auto-append the stem-friendly suffix (prominent "
+             "drums, isolated bass, minimal reverb, instrumental). The "
+             "suffix is on by default because it's what keeps stems "
+             "separable — turn it off only for ambient / sound-design "
+             "experiments where the tags would interfere.",
+    )
     parser.add_argument(
         "--bars", type=int, default=16, choices=(8, 16, 32, 64),
         help="Loop length in bars.",
@@ -170,6 +178,7 @@ def main(argv: list[str] | None = None) -> int:
             gen_model=args.gen_model,
             gen_seed=args.gen_seed,
             gen_api_key=args.gen_api_key,
+            apply_stem_suffix=not args.no_stem_suffix,
             bars=args.bars,
             beats_per_bar=args.beats_per_bar,
             export_format=args.export_format,

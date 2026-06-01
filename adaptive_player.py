@@ -58,19 +58,60 @@ import sounddevice as sd
 import soundfile as sf
 
 # --------------------------------------------------------------------------- #
-# Tension presets                                                             #
+# Mode presets                                                                #
 # --------------------------------------------------------------------------- #
-# Keyed by Demucs stem NAME. "Melody" is the `other` stem (its config.json
-# emotion tag is "melody"). This dict is the one place to retune behaviour.
-PRESETS: dict[str, dict[str, float]] = {
-    "Low":    {"drums": 0.0, "bass": 0.0, "other": 1.0, "vocals": 0.0},
-    "Medium": {"drums": 0.2, "bass": 1.0, "other": 1.0, "vocals": 0.0},
-    "High":   {"drums": 1.0, "bass": 1.0, "other": 1.0, "vocals": 1.0},
+# Two canonical modes for adaptive game music: a calm Exploration bed and a
+# foreground Combat mix. Defaults are used when a song's config.json has no
+# ``modes`` block; the GUI's Save button writes per-song overrides back into
+# that config.json so each song can be tuned independently.
+DEFAULT_MODES: dict[str, dict[str, float]] = {
+    "Exploration": {"drums": 0.0, "bass": 0.2, "other": 1.0, "vocals": 0.3},
+    "Combat":      {"drums": 1.0, "bass": 1.0, "other": 0.7, "vocals": 0.5},
 }
+MODE_NAMES: tuple[str, ...] = ("Exploration", "Combat")
 PRESET_DEFAULT = 1.0          # used for stems a preset doesn't mention
 MASTER_FADE_S = 0.05          # pause/resume anti-click ramp
 SWITCH_FADE_S = 0.25          # song-to-song crossfade dip
 METER_REFRESH_MS = 50         # GUI level-meter refresh
+
+
+def load_modes_for_track(cfg: dict) -> dict[str, dict[str, float]]:
+    """Merge per-song mode overrides from config.json on top of defaults.
+
+    The structure in config.json is::
+
+        "modes": {
+          "Exploration": {"drums": 0.0, "bass": 0.2, ...},
+          "Combat":      {"drums": 1.0, ...}
+        }
+
+    Missing stems fall back to the default for that mode.
+    """
+    saved = cfg.get("modes", {}) if isinstance(cfg, dict) else {}
+    merged: dict[str, dict[str, float]] = {}
+    for name, defaults in DEFAULT_MODES.items():
+        per_mode = dict(defaults)
+        per_mode.update(saved.get(name, {}))
+        merged[name] = per_mode
+    return merged
+
+
+def save_modes_to_config(config_path: Path,
+                         modes: dict[str, dict[str, float]]) -> None:
+    """Persist the current mode presets back into a song's config.json.
+
+    Read-modify-write with indent=2 to keep the file human-readable for
+    anyone inspecting it outside the player.
+    """
+    with config_path.open("r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    cfg["modes"] = {
+        name: {stem: round(float(v), 3) for stem, v in table.items()}
+        for name, table in modes.items()
+    }
+    with config_path.open("w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2)
+        f.write("\n")
 
 
 # --------------------------------------------------------------------------- #
@@ -300,6 +341,24 @@ class StemMixer:
         self.stream.stop()
         self.stream.close()
 
+    @property
+    def position(self) -> int:
+        """Current playhead frame (read by the GUI for the seek bar)."""
+        return self._pos
+
+    def seek_to(self, frame: int) -> None:
+        """Move the playhead to ``frame`` (modulo song length).
+
+        Thread-safe: writes a single Python int, which CPython makes
+        atomic. The audio thread picks up the new value on its next
+        callback. A brief audible click is possible at the seam; for
+        scrub interactions that's acceptable.
+        """
+        track = self.track
+        if track is None:
+            return
+        self._pos = int(frame) % track.n_frames
+
     # ---- realtime callback (audio thread) -------------------------------- #
     def _callback(self, outdata, frames, time_info, status):
         if status:
@@ -368,10 +427,15 @@ class PlayerGUI:
         self.root = root
         self.songs = list(songs)               # [(label, config_path)]
         self.normalize = normalize             # boost-only stem loudness match
-        self.current_level = "High"
+        self.current_level = "Exploration"
         self._guard = False                    # suppress slider callbacks
 
         track = load_track(self.songs[0][1], normalize=self.normalize)
+        # Per-song presets (defaults overlaid with any saved overrides).
+        # Refreshed on every song switch by ``_switch_to``.
+        self.track_modes: dict[str, dict[str, float]] = load_modes_for_track(
+            track.cfg
+        )
         self.mixer = StemMixer(track)
         self.mixer.start()
 
@@ -403,17 +467,23 @@ class PlayerGUI:
         self.subheader.grid(row=2, column=0, columnspan=4, sticky="w",
                             pady=(0, 10))
 
-        # ---- tension presets -------------------------------------------
-        pres = ttk.LabelFrame(root, text="  Tension  ", padding=10)
+        # ---- mode presets ----------------------------------------------
+        pres = ttk.LabelFrame(root, text="  Mode  ", padding=10)
         pres.grid(row=3, column=0, columnspan=4, sticky="ew", pady=(0, 12))
         self.preset_btns: dict[str, ttk.Button] = {}
-        for i, level in enumerate(("Low", "Medium", "High")):
-            b = ttk.Button(pres, text=level, width=12,
+        for i, level in enumerate(MODE_NAMES):
+            b = ttk.Button(pres, text=level, width=14,
                            command=lambda lv=level: self.apply_preset(lv))
             b.grid(row=0, column=i, padx=6)
             self.preset_btns[level] = b
+        self.save_btn = ttk.Button(
+            pres, text="Save current mix to mode",
+            command=self._save_current_mode, width=24,
+        )
+        self.save_btn.grid(row=0, column=len(MODE_NAMES), padx=(18, 6))
         self.preset_lbl = ttk.Label(pres, text="", foreground="#888")
-        self.preset_lbl.grid(row=0, column=3, padx=(14, 0))
+        self.preset_lbl.grid(row=0, column=len(MODE_NAMES) + 1,
+                             padx=(14, 0))
 
         # ---- per-stem strip (rebuilt on song switch) -------------------
         self.strip = ttk.LabelFrame(root, text="  Stems  ", padding=10)
@@ -490,7 +560,7 @@ class PlayerGUI:
 
     # ---- song switching ------------------------------------------------- #
     def _targets_for(self, track: Track) -> np.ndarray:
-        table = PRESETS[self.current_level]
+        table = self.track_modes[self.current_level]
         return np.array([table.get(n, PRESET_DEFAULT)
                          for n in track.stem_names], dtype=np.float32)
 
@@ -500,13 +570,16 @@ class PlayerGUI:
         except Exception as exc:
             self.subheader.config(text=f"load failed: {exc}")
             return
+        # New song -> reload its mode overrides from its config.json.
+        self.track_modes = load_modes_for_track(track.cfg)
         self._build_strip(track)
         self._refresh_header(track)
         self._guard = True
+        active = self.track_modes[self.current_level]
         for idx, n in enumerate(track.stem_names):
             self.mute_vars[idx].set(False)
             self.vol_vars[idx].set(
-                PRESETS[self.current_level].get(n, PRESET_DEFAULT) * 100.0)
+                active.get(n, PRESET_DEFAULT) * 100.0)
         self._guard = False
         # Hand the whole package to the audio thread (it fades + swaps).
         self.mixer.queue_swap(track, self._targets_for(track))
@@ -549,7 +622,7 @@ class PlayerGUI:
 
     def apply_preset(self, level: str, fade_into_mixer: bool = True) -> None:
         self.current_level = level
-        table = PRESETS[level]
+        table = self.track_modes[level]
         self._guard = True
         for idx, name in enumerate(self.mixer.track.stem_names):
             frac = table.get(name, PRESET_DEFAULT)
@@ -564,6 +637,36 @@ class PlayerGUI:
         self.preset_lbl.config(text=f"▶ {level}")
         for lv, b in self.preset_btns.items():
             b.state(["pressed"] if lv == level else ["!pressed"])
+
+    def _save_current_mode(self) -> None:
+        """Capture current slider values as the active mode's preset and
+        persist them into the track's config.json."""
+        track = self.mixer.track
+        table: dict[str, float] = {}
+        for idx, name in enumerate(track.stem_names):
+            # Mute is a UI-only state; bake it as 0 if active.
+            frac = 0.0 if self.mute_vars[idx].get() else (
+                self.vol_vars[idx].get() / 100.0
+            )
+            table[name] = frac
+        self.track_modes[self.current_level] = table
+        try:
+            save_modes_to_config(track.config_path, self.track_modes)
+        except OSError as exc:
+            self.preset_lbl.config(
+                text=f"save failed: {exc}", foreground="#c33"
+            )
+            return
+        self.preset_lbl.config(
+            text=f"saved → {self.current_level}", foreground="#393"
+        )
+        # Restore the normal grey after a moment.
+        self.root.after(
+            1500,
+            lambda: self.preset_lbl.config(
+                text=f"▶ {self.current_level}", foreground="#888"
+            ),
+        )
 
     # ---- transport ------------------------------------------------------ #
     def _toggle_play(self) -> None:

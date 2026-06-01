@@ -53,9 +53,17 @@ logger = logging.getLogger("adaptive_music_engine")
 BACKENDS = ("lyria", "musicgen", "stable-audio", "audioldm", "beatoven")
 
 #: Replicate / fal endpoint slugs (also used as the default model name
-#: for each hosted backend).
+#: for each hosted backend). The AudioLDM slug is version-pinned because
+#: it's a community model: bare ``owner/name`` returns 404 from
+#: Replicate's `models/.../predictions` endpoint (which is reserved for
+#: featured models). Pinning to ``owner/name:hash`` makes the SDK use
+#: the versioned `/v1/predictions` endpoint instead. Refresh the hash
+#: by re-running ``replicate.models.get('haoheliu/audio-ldm').latest_version.id``.
 _REPLICATE_STABLE_AUDIO_SLUG = "stability-ai/stable-audio-2.5"
-_REPLICATE_AUDIOLDM_SLUG = "haoheliu/audio-ldm"
+_REPLICATE_AUDIOLDM_SLUG = (
+    "haoheliu/audio-ldm:"
+    "b61392adecdd660326fc9cfc5398182437dbe5e97b5decfb36e1a36de68b5b95"
+)
 _FAL_BEATOVEN_SLUG = "beatoven/music-generation"
 
 #: Per-backend default model when ``model_name`` is not given.
@@ -99,9 +107,25 @@ _MAX_DURATION_S = 30.0
 #: its own constant above.
 _BACKEND_MAX_DURATION = {
     "stable-audio": 190.0,
-    "audioldm": 30.0,
+    "audioldm": 20.0,
     "beatoven": 150.0,
 }
+
+#: AudioLDM's `duration` is a string-enum (discrete values), not a free
+#: number. We snap to the closest allowed step and send as string.
+_AUDIOLDM_DURATIONS = (2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 17.5, 20.0)
+
+#: Suffix automatically appended to every prompt to maximise stem
+#: separability. The product's value is clean drums/bass/other stems
+#: that Demucs can split — wash-y ambient prompts give muddy stems and
+#: defeat the point. These five tags steer the generator toward a
+#: present drum kit, a distinct rhythmic bass, low reverb, and no
+#: vocals (vocals stem stays clean-silent). Users can opt out per-call
+#: with ``apply_stem_suffix=False`` for genuinely ambient experiments.
+_STEM_FRIENDLY_SUFFIX = (
+    "prominent drum kit, isolated punchy bassline, minimal reverb, "
+    "clean instrument separation, instrumental"
+)
 
 
 def generate_track(
@@ -113,6 +137,7 @@ def generate_track(
     model_name: str | None = None,
     seed: int | None = None,
     api_key: str | None = None,
+    apply_stem_suffix: bool = True,
 ) -> Path:
     """Generate a music clip from ``prompt`` and write it to ``out_path``.
 
@@ -143,6 +168,11 @@ def generate_track(
         ``GOOGLE_API_KEY`` / ``GEMINI_API_KEY``. The hosted backends
         read their tokens from env / keyring directly
         (``REPLICATE_API_TOKEN``, ``FAL_KEY``).
+    apply_stem_suffix:
+        Append :data:`_STEM_FRIENDLY_SUFFIX` to the prompt before
+        sending it to the backend. Default ``True`` — this is the
+        product's "secret sauce" that keeps stems separable. Set
+        ``False`` only for ambient / sound-design experiments.
 
     Returns
     -------
@@ -166,20 +196,28 @@ def generate_track(
     model = model_name or DEFAULT_MODELS[backend]
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
+    sent_prompt = (
+        f"{prompt.strip()}, {_STEM_FRIENDLY_SUFFIX}"
+        if apply_stem_suffix
+        else prompt
+    )
+    if apply_stem_suffix:
+        logger.debug("Augmented prompt: %s", sent_prompt)
+
     if backend == "lyria":
-        return _generate_lyria(prompt, out_path, model=model, api_key=api_key)
+        return _generate_lyria(sent_prompt, out_path, model=model, api_key=api_key)
     if backend == "musicgen":
         return _generate_musicgen(
-            prompt, out_path, duration_s=duration_s, model=model, seed=seed
+            sent_prompt, out_path, duration_s=duration_s, model=model, seed=seed
         )
     if backend in ("stable-audio", "audioldm"):
         return _generate_replicate(
-            prompt, out_path, backend=backend, model=model,
+            sent_prompt, out_path, backend=backend, model=model,
             duration_s=duration_s, seed=seed,
         )
     # backend == "beatoven" (BACKENDS check above prevents other values)
     return _generate_beatoven(
-        prompt, out_path, model=model, duration_s=duration_s
+        sent_prompt, out_path, model=model, duration_s=duration_s
     )
 
 
@@ -478,14 +516,22 @@ def _replicate_inputs(backend: str, prompt: str, duration_s: float,
         # Stability's Replicate model uses `prompt` + `seconds_total`.
         inputs["prompt"] = prompt
         inputs["seconds_total"] = int(duration_s)
+        if seed is not None:
+            inputs["seed"] = int(seed)
     elif backend == "audioldm":
-        # haoheliu/audio-ldm uses `text` + `duration`.
+        # haoheliu/audio-ldm uses `text` + `duration` + `random_seed`
+        # (NOT `seed`). `duration` is a STRING enum, not a number — see
+        # _AUDIOLDM_DURATIONS. Snap to the closest valid step.
+        snapped = min(_AUDIOLDM_DURATIONS,
+                      key=lambda v: abs(v - duration_s))
         inputs["text"] = prompt
-        inputs["duration"] = float(duration_s)
+        inputs["duration"] = f"{snapped:.1f}"
+        if seed is not None:
+            inputs["random_seed"] = int(seed)
     else:
         inputs["prompt"] = prompt
-    if seed is not None:
-        inputs["seed"] = int(seed)
+        if seed is not None:
+            inputs["seed"] = int(seed)
     return inputs
 
 

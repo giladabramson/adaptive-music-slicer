@@ -70,6 +70,7 @@ def run_pipeline(
     gen_model: str | None = None,
     gen_seed: int | None = None,
     gen_api_key: str | None = None,
+    apply_stem_suffix: bool = True,
     bars: int = 16,
     beats_per_bar: int = 4,
     export_format: str = "wav",
@@ -136,6 +137,7 @@ def run_pipeline(
             model_name=gen_model,
             seed=gen_seed,
             api_key=gen_api_key,
+            apply_stem_suffix=apply_stem_suffix,
         )
         track_name = _slug(generate_prompt)
     else:
