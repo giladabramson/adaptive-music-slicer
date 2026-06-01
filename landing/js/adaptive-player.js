@@ -30,15 +30,53 @@ class AdaptivePlayer {
         this.ctx = new Ctx();
         this.master = this.ctx.createGain();
         this.master.gain.value = 0;
-        this.master.connect(this.ctx.destination);
+
+        // AnalyserNode tap on the master bus, so the visualizer reads the
+        // exact post-mix, post-fade signal the user is hearing. Smoothing
+        // tuned for a calm spectrum on slow game-music tempos.
+        this.analyser = this.ctx.createAnalyser();
+        this.analyser.fftSize = 512;
+        this.analyser.smoothingTimeConstant = 0.78;
+        this.master.connect(this.analyser);
+        this.analyser.connect(this.ctx.destination);
+        this._freqBuf = new Uint8Array(this.analyser.frequencyBinCount);
 
         this.stemGains = {};
         this.stemSources = {};
+        this.stemBuffers = {};       // decoded buffer per stem, kept across seek
         this.targetGains = {};
         this.currentSong = null;
         this.playing = false;
         this.fadeSec = 1.5;
         this._bufferCache = new Map();
+        this._sourceStartTime = 0;   // ctx.currentTime when current sources began
+        this._sourceStartOffset = 0; // buffer position they began at (seconds)
+        // Snapshot of the playhead at the moment we paused. While this
+        // is non-null we consider the player paused and freeze
+        // positionSec at this value; play() resumes from here.
+        this._pausedPosition = null;
+    }
+
+    /** Loop duration in seconds (all stems share length by construction). */
+    get loopDurationSec() {
+        const buf = Object.values(this.stemBuffers)[0];
+        return buf ? buf.duration : 0;
+    }
+
+    /** Current playhead position within the loop, in seconds. */
+    get positionSec() {
+        if (this._pausedPosition !== null) return this._pausedPosition;
+        const dur = this.loopDurationSec;
+        if (!dur) return 0;
+        const elapsed = this.ctx.currentTime - this._sourceStartTime;
+        // Clamp negative offsets (during the brief swap window) to 0.
+        return ((Math.max(0, this._sourceStartOffset + elapsed)) % dur);
+    }
+
+    /** Snapshot the analyser's frequency bins (Uint8 0-255 per bin). */
+    readSpectrum() {
+        this.analyser.getByteFrequencyData(this._freqBuf);
+        return this._freqBuf;
     }
 
     /** Pre-warm the AudioContext from a user gesture. iOS Safari needs this. */
@@ -70,38 +108,89 @@ class AdaptivePlayer {
 
         this._stopAllSources();
         this.currentSong = songMeta;
+        this.stemBuffers = buffers;
 
+        if (wasPlaying) {
+            // Continue playback into the new song from its start.
+            this._pausedPosition = null;
+            this._spawnSources(0);
+            this._rampMaster(1.0, SWITCH_FADE_S);
+        } else {
+            // Not playing — don't spawn sources yet. positionSec returns 0
+            // (frozen) so the seekbar doesn't drift while the user is
+            // still deciding whether to hit play.
+            this._pausedPosition = 0;
+        }
+    }
+
+    /** Seek to ``positionSec`` within the loop without re-fetching audio.
+     * Works whether playing or paused: while paused, this just updates
+     * the saved position so the next play() resumes from there.
+     */
+    seek(positionSec) {
+        if (!this.currentSong || !this.stemBuffers.drums) return;
+        const dur = this.loopDurationSec;
+        if (!dur) return;
+        const offset = Math.max(0, Math.min(positionSec, dur - 0.05));
+        if (this._pausedPosition !== null) {
+            this._pausedPosition = offset;
+            return;
+        }
+        this._stopAllSources();
+        this._spawnSources(offset);
+    }
+
+    /** Internal: create + start the four source nodes at ``offset`` seconds.
+     * Caller is responsible for having stopped the previous sources first.
+     */
+    _spawnSources(offset) {
+        const startAt = this.ctx.currentTime + 0.04;
         for (const stem of STEM_KEYS) {
+            const buffer = this.stemBuffers[stem];
+            if (!buffer) continue;
+
             const gain = this.ctx.createGain();
             gain.gain.value = this.targetGains[stem] ?? 1.0;
             gain.connect(this.master);
 
             const src = this.ctx.createBufferSource();
-            src.buffer = buffers[stem];
+            src.buffer = buffer;
             src.loop = true;
             src.connect(gain);
+            // Starting every source at the same context time with the same
+            // offset is what gives us sample-accurate sync across the four
+            // stems for the rest of the loop.
+            src.start(startAt, offset);
 
             this.stemGains[stem] = gain;
             this.stemSources[stem] = src;
         }
-
-        // Start every source at the exact same context time — that's
-        // what guarantees sample-accurate sync across the four stems.
-        const startAt = this.ctx.currentTime + 0.05;
-        for (const stem of STEM_KEYS) this.stemSources[stem].start(startAt);
-
-        if (wasPlaying) this._rampMaster(1.0, SWITCH_FADE_S);
+        this._sourceStartTime = startAt;
+        this._sourceStartOffset = offset;
     }
 
     play() {
         this.ctx.resume();
+        if (this.playing) return;
         this.playing = true;
+        // If we're resuming from pause, sources were stopped — respawn
+        // them at the saved position so playback continues from there.
+        if (!this.stemSources.drums && this.currentSong) {
+            this._spawnSources(this._pausedPosition ?? 0);
+        }
+        this._pausedPosition = null;
         this._rampMaster(1.0, MASTER_FADE_S);
     }
 
     pause() {
+        if (!this.playing) return;
+        // Snapshot before flipping state so positionSec still computes live.
+        this._pausedPosition = this.positionSec;
         this.playing = false;
         this._rampMaster(0.0, MASTER_FADE_S);
+        // The master fade covers the audible cut; stopping the sources is
+        // what makes the playhead actually stop advancing.
+        this._stopAllSources();
     }
 
     toggle() {

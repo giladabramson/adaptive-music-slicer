@@ -25,6 +25,10 @@ config.json
 # keep a sample input if you add one (comment on its own line —
 # git does not support inline comments in .gitignore patterns)
 !input_track.mp3
+# Landing-page audio assets — these ARE source files for the public
+# site, not generated artifacts. Re-include them past the broad
+# *.mp3 / *.wav rules above.
+!landing/audio/**
 
 # OS / editor
 .DS_Store

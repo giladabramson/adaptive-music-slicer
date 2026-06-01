@@ -1,0 +1,170 @@
+{
+  "version": 6,
+  "mixer": {
+    "stems": [
+      {
+        "name": "drums",
+        "file": "drums.mp3",
+        "label": "Drums"
+      },
+      {
+        "name": "bass",
+        "file": "bass.mp3",
+        "label": "Bass"
+      },
+      {
+        "name": "other",
+        "file": "other.mp3",
+        "label": "Melody"
+      },
+      {
+        "name": "vocals",
+        "file": "vocals.mp3",
+        "label": "Vocals"
+      }
+    ],
+    "songs": [
+      {
+        "id": "tech-house",
+        "label": "Tech house \u00b7 124 BPM",
+        "blurb": "DJ inspiration \u2014 melodic hook",
+        "scene": "DJ",
+        "bpm": 124.0,
+        "bars": 8,
+        "loop_duration_ms": 15484,
+        "base": "mixer/tech-house"
+      },
+      {
+        "id": "lofi",
+        "label": "Lo-fi boom-bap \u00b7 90 BPM",
+        "blurb": "DJ inspiration \u2014 jazzy rhodes",
+        "scene": "DJ",
+        "bpm": 90.0,
+        "bars": 8,
+        "loop_duration_ms": 21333,
+        "base": "mixer/lofi"
+      },
+      {
+        "id": "synthpop",
+        "label": "Synth pop \u00b7 110 BPM",
+        "blurb": "Producer \u2014 female lead vocal",
+        "scene": "Producer",
+        "bpm": 110.0,
+        "bars": 8,
+        "loop_duration_ms": 17455,
+        "base": "mixer/synthpop"
+      }
+    ],
+    "default_song": "tech-house"
+  },
+  "adaptive_combat": {
+    "label": "Combat scene \u00b7 neutral bed with vocals",
+    "bpm": 130.0,
+    "bars": 16,
+    "loop_duration_ms": 29538,
+    "modes": {
+      "Exploration": {
+        "drums": 0.0,
+        "bass": 0.2,
+        "other": 1.0,
+        "vocals": 0.3
+      },
+      "Combat": {
+        "drums": 1.0,
+        "bass": 1.0,
+        "other": 0.7,
+        "vocals": 0.5
+      }
+    },
+    "stems": [
+      {
+        "name": "drums",
+        "file": "drums.mp3"
+      },
+      {
+        "name": "bass",
+        "file": "bass.mp3"
+      },
+      {
+        "name": "other",
+        "file": "other.mp3"
+      },
+      {
+        "name": "vocals",
+        "file": "vocals.mp3"
+      }
+    ],
+    "base": "adaptive-combat"
+  },
+  "stems_isolated": {
+    "label": "Three stems \u00b7 separately generated \u00b7 130 BPM \u00b7 E minor",
+    "bpm": 130,
+    "key": "E minor",
+    "stems": [
+      {
+        "name": "drums",
+        "file": "drums.mp3",
+        "label": "Drums",
+        "isolation_db": 30,
+        "blurb": "Drums at \u221217 dB, bass at \u221247 dB."
+      },
+      {
+        "name": "bass",
+        "file": "bass.mp3",
+        "label": "Bass",
+        "isolation_db": 17,
+        "blurb": "Bass at \u221215 dB, drums at \u221232 dB."
+      },
+      {
+        "name": "atmosphere",
+        "file": "atmosphere.mp3",
+        "label": "Atmosphere",
+        "isolation_db": 54,
+        "blurb": "Atmosphere at \u221217 dB, drums/bass at \u221271/\u221279 dB."
+      }
+    ],
+    "base": "stems-isolated"
+  },
+  "bass_ab": {
+    "label": "Bass \u00b7 isolation prompt",
+    "prompt": "solo electric bass guitar recording, dry",
+    "base": "bass-ab",
+    "raw": {
+      "file": "raw.mp3",
+      "label": "Raw model output",
+      "blurb": "Even with an isolation prompt the model leaves drum hits in the mix."
+    },
+    "clean": {
+      "file": "clean.mp3",
+      "label": "After Demucs",
+      "blurb": "Same audio, separated. Clean bass alone."
+    }
+  },
+  "bass_engineering": {
+    "base": "bass-engineering",
+    "naive": {
+      "file": "naive.mp3",
+      "label": "Naive prompt \u2192 Demucs bass",
+      "prompt": "bass line, 130 BPM, E minor, electric bass",
+      "bass_db": -25.0,
+      "drums_db": -16.3,
+      "blurb": "Drums 8.7 dB louder than the bass itself \u2014 Lyria treated 'bass line' as a band track and Demucs couldn't undo it."
+    },
+    "engineered": {
+      "file": "engineered.mp3",
+      "label": "Engineered prompt \u2192 Demucs bass",
+      "prompt": "solo electric bass guitar recording, dry",
+      "bass_db": -14.4,
+      "drums_db": -48.9,
+      "blurb": "Bass 34.5 dB louder than the drum residual \u2014 drums effectively silent."
+    },
+    "swing_db": 43.2
+  },
+  "naive_bass": {
+    "label": "Naive bass prompt",
+    "prompt": "bass line, 130 BPM, E minor, electric bass",
+    "blurb": "Lyria gave back bass *and* drums because the prompt didn't say not to.",
+    "base": "naive",
+    "file": "bass.mp3"
+  }
+}
