@@ -33,3 +33,6 @@ config.json
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# Outreach drafts & logs — marketing ops, not for the public repo
+outreach/

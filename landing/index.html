@@ -680,12 +680,11 @@
             — just a one-time "it's ready" email.</span>
         </p>
         <!--
-          Setup: sign up at https://formspree.io (free, 50 submissions/mo),
-          create a form, replace the "YOUR_FORM_ID" placeholder below with
-          the ID from your form's endpoint. Until then, submits go nowhere.
+          Submissions are forwarded by formsubmit.co to the project inbox.
+          The /ajax/ endpoint returns JSON, which main.js expects.
         -->
         <form id="interest-form"
-              action="https://formspree.io/f/YOUR_FORM_ID"
+              action="https://formsubmit.co/ajax/07587588befabc4483d38f0b61c5d968"
               method="POST">
             <input type="email"
                    name="email"
@@ -693,6 +692,8 @@
                    placeholder="you@studio.com"
                    autocomplete="email">
             <input type="hidden" name="_subject" value="StemForge — interested">
+            <input type="hidden" name="_captcha" value="false">
+            <input type="hidden" name="_template" value="table">
             <button type="submit">Notify me</button>
         </form>
         <p id="interest-status" class="interest-status" hidden></p>
