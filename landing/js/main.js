@@ -49,6 +49,27 @@ function wireStickyBar() {
     obs.observe(hero);
 }
 
+/** Highlight the sticky-nav link whose section is currently on screen. */
+function wireScrollspy() {
+    const links = document.querySelectorAll('.sticky-nav a[href^="#"]');
+    if (links.length === 0 || !("IntersectionObserver" in window)) return;
+    const byId = new Map();
+    links.forEach(a => byId.set(a.getAttribute("href").slice(1), a));
+    const sections = [...byId.keys()]
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+    if (sections.length === 0) return;
+
+    const obs = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            links.forEach(a => a.classList.remove("active"));
+            byId.get(entry.target.id)?.classList.add("active");
+        }
+    }, { rootMargin: "-30% 0px -60% 0px", threshold: 0 });
+    sections.forEach(s => obs.observe(s));
+}
+
 function wireInterestForm() {
     const form = document.getElementById("interest-form");
     const status = document.getElementById("interest-status");
@@ -97,6 +118,7 @@ function wireInterestForm() {
 function main() {
     wireScrollReveal();
     wireStickyBar();
+    wireScrollspy();
     wireInterestForm();
 }
 
