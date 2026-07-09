@@ -92,6 +92,25 @@ function wireInterestForm() {
         status.hidden = false;
         status.textContent = "Sending…";
         status.dataset.kind = "info";
+        track("signup_attempt");
+
+        // The form backend (formsubmit.co) is a free service and has
+        // real outages. Never lose a lead silently: on any failure,
+        // route the visitor to a prefilled GitHub issue instead.
+        const fallback = (reason) => {
+            const issueUrl =
+                "https://github.com/giladabramson/adaptive-music-slicer/issues/new" +
+                "?title=" + encodeURIComponent("Interested in StemForge cloud") +
+                "&body=" + encodeURIComponent(
+                    "The signup form was down, so I'm registering interest here.\n\n" +
+                    "Contact email: (your email)\n");
+            status.innerHTML =
+                "The signup service is having trouble right now — " +
+                '<a href="' + issueUrl + '">leave your email in a GitHub issue</a> ' +
+                "instead, or try again in a few minutes.";
+            status.dataset.kind = "error";
+            track("signup_failed", { reason });
+        };
 
         try {
             const resp = await fetch(form.action, {
@@ -105,12 +124,10 @@ function wireInterestForm() {
                 status.dataset.kind = "ok";
                 track("signup");
             } else {
-                status.textContent = `Couldn't submit (HTTP ${resp.status}). Try again later.`;
-                status.dataset.kind = "error";
+                fallback(`http_${resp.status}`);
             }
         } catch (err) {
-            status.textContent = `Network error: ${err.message}`;
-            status.dataset.kind = "error";
+            fallback("network");
         }
     });
 }
