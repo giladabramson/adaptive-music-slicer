@@ -11,7 +11,7 @@ other — perfect for back-to-back A/B/C/D listening.
 
 Run from the project root::
 
-    C:\\dev\\.venv311\\Scripts\\python.exe scripts\\process_for_player.py
+    .venv311\\Scripts\\python.exe scripts\\process_for_player.py
 """
 
 from __future__ import annotations
@@ -110,7 +110,7 @@ def main() -> int:
           f"{avg:.1f}s/track ===", file=sys.stderr)
     print(f"Player library: {out_root}", file=sys.stderr)
     print(f"\nLaunch the player on this library:", file=sys.stderr)
-    print(f"  C:\\dev\\.venv311\\Scripts\\python.exe "
+    print(f"  .venv311\\Scripts\\python.exe "
           f"adaptive_player.py --library "
           f"{out_root.relative_to(ROOT)}", file=sys.stderr)
     return 0 if fail == 0 else 1

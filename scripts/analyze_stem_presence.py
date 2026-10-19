@@ -12,7 +12,7 @@ per-backend summary showing how often each backend produced each stem.
 
 Run from the project root::
 
-    C:\\dev\\.venv311\\Scripts\\python.exe scripts\\analyze_stem_presence.py
+    .venv311\\Scripts\\python.exe scripts\\analyze_stem_presence.py
 """
 
 from __future__ import annotations

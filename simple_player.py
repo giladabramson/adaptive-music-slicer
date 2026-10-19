@@ -7,7 +7,7 @@ at max" reset button, and a scrubbable playhead.
 
 Run from the project root::
 
-    C:\\dev\\.venv311\\Scripts\\python.exe simple_player.py --library output/producer_vocals
+    .venv311\\Scripts\\python.exe simple_player.py --library output/producer_vocals
 """
 
 from __future__ import annotations

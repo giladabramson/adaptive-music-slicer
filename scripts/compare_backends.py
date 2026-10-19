@@ -6,7 +6,7 @@ and a CSV summary at ``output/comparison/_results.csv``.
 
 Run from the project root:
 
-    C:\\dev\\.venv311\\Scripts\\python.exe scripts\\compare_backends.py
+    .venv311\\Scripts\\python.exe scripts\\compare_backends.py
 
 API keys are resolved by generation.py itself (env var or keyring),
 so set them once with::
